@@ -1,0 +1,23 @@
+{
+  "testEnvironment": "node",
+  "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+  "testMatch": ["**/__tests__/**/*.test.ts", "**/?(*.)+(spec|test).ts"],
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json"],
+  "transform": {
+    "^.+\\.tsx?$": "babel-jest"
+  },
+  "collectCoverageFrom": [
+    "database/**/*.ts",
+    "utils/**/*.ts",
+    "!**/*.d.ts",
+    "!**/node_modules/**"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "branches": 50,
+      "functions": 50,
+      "lines": 50,
+      "statements": 50
+    }
+  }
+}

@@ -4,6 +4,8 @@ import {
   deleteExpense,
   getMonthlyTotal,
   getTotalByCategory,
+  getTotalByExpenseType,
+  getFutureExpenses,
 } from '../database/expenseService';
 
 jest.mock('../database/db', () => ({
@@ -148,6 +150,74 @@ describe('ExpenseService', () => {
         'SELECT category, SUM(amount) as total FROM expenses WHERE user_id = ? GROUP BY category ORDER BY total DESC',
         [1]
       );
+    });
+  });
+
+  describe('getTotalByExpenseType', () => {
+    it('debería retornar totales separados por tipo de gasto', async () => {
+      const db = require('../database/db').default;
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce([
+        { expense_type: 'compartido', total: 200 },
+        { expense_type: 'individual', total: 300 },
+      ]);
+
+      const result = await getTotalByExpenseType(2024, 1);
+
+      expect(result).toEqual({ shared: 200, individual: 300 });
+      expect(db.getAllAsync).toHaveBeenCalledWith(
+        expect.stringContaining('COALESCE(expense_type'),
+        [1, '2024-01-01', '2024-01-31']
+      );
+    });
+
+    it('debería retornar shared=0 cuando no hay gastos compartidos', async () => {
+      const db = require('../database/db').default;
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce([
+        { expense_type: 'individual', total: 500 },
+      ]);
+
+      const result = await getTotalByExpenseType(2024, 1);
+
+      expect(result).toEqual({ shared: 0, individual: 500 });
+    });
+
+    it('debería retornar { shared: 0, individual: monthlyTotal } si la columna no existe', async () => {
+      const db = require('../database/db').default;
+
+      (db.getAllAsync as jest.Mock).mockRejectedValueOnce(new Error('no such column: expense_type'));
+      (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({ total: 400 });
+
+      const result = await getTotalByExpenseType(2024, 1);
+
+      expect(result).toEqual({ shared: 0, individual: 400 });
+    });
+  });
+
+  describe('getFutureExpenses', () => {
+    it('debería retornar el total de gastos futuros del mes', async () => {
+      const db = require('../database/db').default;
+
+      (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({ total: 150 });
+
+      const result = await getFutureExpenses(2024, 12);
+
+      expect(result).toBe(150);
+      expect(db.getFirstAsync).toHaveBeenCalledWith(
+        expect.stringContaining('date > ?'),
+        expect.arrayContaining([1, '2024-12-01', '2024-12-31'])
+      );
+    });
+
+    it('debería retornar 0 si no hay gastos futuros', async () => {
+      const db = require('../database/db').default;
+
+      (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
+
+      const result = await getFutureExpenses(2024, 1);
+
+      expect(result).toBe(0);
     });
   });
 });

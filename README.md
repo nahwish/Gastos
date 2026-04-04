@@ -45,7 +45,9 @@ A continuación se explica qué es cada tecnología y por qué se usa en este pr
 | **AsyncStorage** | ^1.23.1 | Sistema de almacenamiento clave-valor para guardar la sesión del usuario y como motor alternativo de base de datos en la versión web. |
 | **React Navigation** | ^7.x | Biblioteca que maneja la navegación entre pantallas (equivalente al sistema de "páginas" en una web). |
 | **NativeWind + Tailwind CSS** | ^4.2.1 / ^3.4.19 | Sistema de estilos visuales. Permite dar forma y color a los componentes usando clases predefinidas. |
+| **expo-linear-gradient** | latest | Gradientes de color para las tarjetas del dashboard financiero. |
 | **Jest** | ^30.2.0 | Framework de tests automatizados. Permite verificar que el código funciona correctamente sin ejecutar la app manualmente. |
+| **fast-check** | latest | Librería de property-based testing. Genera cientos de casos de prueba automáticamente para verificar invariantes del sistema. |
 
 ---
 
@@ -61,23 +63,39 @@ gastos-app/
 ├── babel.config.js            # Configuración del compilador de JavaScript
 ├── tailwind.config.js         # Configuración del sistema de estilos
 │
+├── theme/
+│   └── darkTheme.ts           # Tokens de color y tipografía del tema oscuro
+│
 ├── database/                  # Capa de datos: acceso a la base de datos
 │   ├── db.ts                  # Inicialización y configuración de SQLite (+ fallback para web)
 │   ├── authService.ts         # Lógica de registro, login, logout y sesión de usuario
-│   └── expenseService.ts      # Operaciones CRUD sobre gastos
+│   ├── expenseService.ts      # Operaciones CRUD sobre gastos
+│   ├── migrationService.ts    # Migraciones de esquema de BD (no destructivas)
+│   ├── monthlyConfigService.ts# Sueldo y objetivo de ahorro por mes/usuario
+│   ├── reimbursementService.ts# Reintegros del usuario
+│   └── types.ts               # Interfaces TypeScript compartidas y funciones de cálculo
+│
+├── components/                # Componentes reutilizables
+│   ├── AddExpenseModal.tsx     # Modal para agregar un nuevo gasto
+│   ├── GradientCard.tsx        # Tarjeta con gradiente de color (dashboard)
+│   ├── SummaryCard.tsx         # Tarjeta oscura con label, monto y porcentaje
+│   ├── ProgressBar.tsx         # Barra de progreso (objetivo de ahorro)
+│   └── SalaryConfigModal.tsx   # Modal para configurar sueldo y objetivo de ahorro
 │
 ├── screens/                   # Pantallas visibles de la aplicación
 │   ├── LoginScreen.tsx        # Pantalla de inicio de sesión y registro
-│   ├── HomeScreen.tsx         # Dashboard principal con resumen mensual
-│   ├── ExpensesListScreen.tsx # Lista completa de gastos con opción de borrar
+│   ├── HomeScreen.tsx         # Dashboard principal con resumen mensual (tema oscuro)
+│   ├── ExpensesListScreen.tsx # Lista completa de gastos con opción de borrar (tema oscuro)
 │   └── AddExpenseScreen.tsx   # Formulario para agregar un nuevo gasto
 │
 ├── utils/
-│   └── AuthContext.tsx        # Estado global de autenticación compartido entre pantallas
+│   ├── AuthContext.tsx        # Estado global de autenticación compartido entre pantallas
+│   └── exportService.ts       # Exportación de gastos a CSV / Excel / PDF
 │
 ├── __tests__/                 # Tests automatizados
 │   ├── authService.test.ts    # Tests del servicio de autenticación
-│   └── expenseService.test.ts # Tests del servicio de gastos
+│   ├── expenseService.test.ts # Tests del servicio de gastos
+│   └── darkTheme.property.test.ts # Property-based tests del rediseño (fast-check)
 │
 └── assets/                    # Imágenes, íconos y recursos estáticos
 ```
@@ -144,7 +162,35 @@ App abre
 | `description` | TEXT | Descripción breve del gasto |
 | `category` | TEXT | Categoría (Alimentación, Transporte, etc.) |
 | `date` | TEXT | Fecha del gasto en formato `YYYY-MM-DD` |
+| `expense_type` | TEXT | Tipo de gasto: `'compartido'` o `'individual'` (default: `'individual'`) |
 | `created_at` | DATETIME | Fecha en que se registró |
+
+**Tabla `monthly_config` — Configuración financiera mensual**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | INTEGER | Identificador único, autoincremental |
+| `user_id` | INTEGER | Referencia al usuario |
+| `year` | INTEGER | Año de la configuración |
+| `month` | INTEGER | Mes de la configuración |
+| `salary` | REAL | Sueldo mensual configurado por el usuario |
+| `savings_goal` | REAL | Objetivo de ahorro mensual |
+| `created_at` | DATETIME | Fecha de creación |
+
+**Tabla `reimbursements` — Reintegros del usuario**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | INTEGER | Identificador único, autoincremental |
+| `user_id` | INTEGER | Referencia al usuario |
+| `amount` | REAL | Monto del reintegro |
+| `description` | TEXT | Descripción del reintegro |
+| `date` | TEXT | Fecha en formato `YYYY-MM-DD` |
+| `created_at` | DATETIME | Fecha de registro |
+
+### Sistema de migraciones
+
+La app usa un `MigrationService` que aplica cambios de esquema de forma **no destructiva e idempotente**. Cada migración se registra en una tabla interna `_migrations`; si ya fue aplicada, se omite sin error. Esto garantiza que los datos existentes nunca se pierden al actualizar la app.
 
 ### Compatibilidad multiplataforma
 
@@ -184,13 +230,17 @@ Pantalla de entrada a la app. Permite al usuario alternar entre el formulario de
 ### HomeScreen — Panel principal
 
 Muestra:
-- Saludo personalizado con el nombre del usuario.
-- Total de gastos del mes actual.
-- Desglose de gastos agrupados por categoría.
+- Título "Mis Finanzas" con el mes y año actual.
+- Dos tarjetas con gradiente: "Disponible Real" (sueldo menos gastos del mes) y "Con Gastos Futuros".
+- Desglose de gastos del mes en tres sub-tarjetas: Compartido, Individual y Total.
+- Sección de Reintegros con el total recuperable del mes.
+- Barra de progreso del objetivo de ahorro mensual.
+- Sección de Sueldo del mes con el total incluyendo reintegros.
+- Lista de gastos agrupados por categoría.
 - Botón de acceso rápido a la carga de gastos.
 - Opción de cerrar sesión con confirmación.
 
-Los datos se recargan automáticamente cada vez que la pantalla vuelve al foco (por ejemplo, al regresar desde la pantalla de agregar gasto).
+Los datos se recargan automáticamente cada vez que la pantalla vuelve al foco.
 
 ### ExpensesListScreen — Lista de gastos
 
@@ -394,6 +444,15 @@ npm run test:coverage     # Ejecuta los tests y genera un reporte de cobertura
 | `expenseService.test.ts` | 10 tests | ✅ Todos pasan |
 | **Total** | **19 tests** | **✅ 19/19** |
 
+### Property-based testing
+
+Además de los tests unitarios tradicionales, el proyecto usa **fast-check** para property-based testing. En lugar de verificar casos específicos, estos tests generan cientos de entradas aleatorias para verificar invariantes del sistema, por ejemplo:
+
+- El progreso de ahorro siempre está en el rango `[0.0, 1.0]`
+- La suma de gastos compartidos + individuales siempre es igual al total mensual
+- Las migraciones de base de datos son idempotentes (ejecutarlas dos veces produce el mismo resultado)
+- Los datos existentes nunca se modifican al aplicar una migración
+
 ### ¿Qué es la cobertura de tests?
 
 La cobertura indica qué porcentaje del código está siendo ejercitado por los tests. El proyecto tiene configurado un mínimo del **50%** en todas las métricas. Los tests usan **mocks** (simulaciones de la base de datos) para no depender de datos reales ni de hardware durante las pruebas.
@@ -413,11 +472,11 @@ La cobertura indica qué porcentaje del código está siendo ejercitado por los 
 
 ## Próximas mejoras sugeridas
 
+- [x] Tema oscuro (dark mode) — en desarrollo
 - [ ] Edición de gastos existentes
 - [ ] Filtros por fecha y categoría en la lista
 - [ ] Gráficos de evolución mensual
 - [ ] Exportación de datos (CSV / PDF)
-- [ ] Modo oscuro
 - [ ] Soporte para múltiples monedas
 
 ---

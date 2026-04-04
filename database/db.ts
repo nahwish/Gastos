@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { runMigrations } from './migrationService';
 
 let db: any;
 
@@ -89,12 +90,15 @@ if (Platform.OS === 'web') {
         }
         return tables.expenses;
       } else if (sql.includes('SELECT category, SUM')) {
+        const userId = params[0];
         const grouped: any = {};
-        tables.expenses.forEach((e: any) => {
+        tables.expenses.filter((e: any) => e.user_id === userId).forEach((e: any) => {
           if (!grouped[e.category]) grouped[e.category] = 0;
           grouped[e.category] += e.amount;
         });
         return Object.entries(grouped).map(([category, total]: any) => ({ category, total })).sort((a: any, b: any) => b.total - a.total);
+      } else if (sql.includes('SELECT * FROM categories')) {
+        return tables.categories;
       }
       return tables.expenses;
     },
@@ -116,10 +120,11 @@ if (Platform.OS === 'web') {
           return tables.users.find((u: any) => u.username === params[0]) || null;
         }
       } else if (sql.includes('SELECT SUM(amount)')) {
-        const startDate = params[0];
-        const endDate = params[1];
+        const userId = params[0];
+        const startDate = params[1];
+        const endDate = params[2];
         const total = tables.expenses
-          .filter((e: any) => e.date >= startDate && e.date <= endDate)
+          .filter((e: any) => e.user_id === userId && e.date >= startDate && e.date <= endDate)
           .reduce((sum: number, e: any) => sum + e.amount, 0);
         return { total };
       }
@@ -176,6 +181,13 @@ export const initDatabase = async () => {
         'INSERT OR IGNORE INTO categories (name, icon, color) VALUES (?, ?, ?)',
         [cat.name, cat.icon, cat.color]
       );
+    }
+
+    // Run migrations after base tables are created
+    try {
+      await runMigrations(db);
+    } catch (migrationError) {
+      console.error('Error running migrations:', migrationError);
     }
 
     console.log('Database initialized successfully');

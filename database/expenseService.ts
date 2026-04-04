@@ -92,3 +92,65 @@ export const getMonthlyTotal = async (year: number, month: number): Promise<numb
   ) as {total: number} | null;
   return result?.total || 0;
 };
+
+export interface Category {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export const getCategories = async (): Promise<Category[]> => {
+  const result = await db.getAllAsync('SELECT * FROM categories ORDER BY id ASC', []) as Category[];
+  return result;
+};
+
+export const getTotalByExpenseType = async (year: number, month: number): Promise<{shared: number, individual: number}> => {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('No user logged in');
+
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+
+  try {
+    const rows = await db.getAllAsync(
+      `SELECT COALESCE(expense_type, 'individual') as expense_type, SUM(amount) as total
+       FROM expenses
+       WHERE user_id = ? AND date BETWEEN ? AND ?
+       GROUP BY COALESCE(expense_type, 'individual')`,
+      [userId, startDate, endDate]
+    ) as {expense_type: string, total: number}[];
+
+    let shared = 0;
+    let individual = 0;
+    for (const row of rows) {
+      if (row.expense_type === 'compartido') {
+        shared = row.total;
+      } else {
+        individual = row.total;
+      }
+    }
+    return { shared, individual };
+  } catch {
+    // Column doesn't exist yet (pre-migration) — fall back to monthly total
+    const monthlyTotal = await getMonthlyTotal(year, month);
+    return { shared: 0, individual: monthlyTotal };
+  }
+};
+
+export const getFutureExpenses = async (year: number, month: number): Promise<number> => {
+  const userId = await getCurrentUserId();
+  if (!userId) throw new Error('No user logged in');
+
+  const today = new Date().toISOString().split('T')[0];
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+
+  const result = await db.getFirstAsync(
+    `SELECT SUM(amount) as total FROM expenses
+     WHERE user_id = ? AND date > ? AND date BETWEEN ? AND ?`,
+    [userId, today, startDate, endDate]
+  ) as {total: number} | null;
+
+  return result?.total || 0;
+};

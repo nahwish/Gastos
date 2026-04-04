@@ -2,23 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { getAllExpenses, deleteExpense, Expense } from '../database/expenseService';
 import { exportExpenses } from '../utils/exportService';
+import { DarkTheme } from '../theme/darkTheme';
 
-export default function ExpensesListScreen({ navigation }: any) {
+export default function ExpensesListScreen({ navigation, route }: any) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  const categoryFilter = route.params?.category;
+
   const loadExpenses = async () => {
     const data = await getAllExpenses();
     setExpenses(data);
+    
+    if (categoryFilter) {
+      const filtered = data.filter(e => e.category === categoryFilter);
+      setFilteredExpenses(filtered);
+    } else {
+      setFilteredExpenses(data);
+    }
   };
 
   useEffect(() => {
     loadExpenses();
     const unsubscribe = navigation.addListener('focus', loadExpenses);
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, categoryFilter]);
 
   const handleDelete = (id: number) => {
     setShowDeleteConfirm(id);
@@ -31,16 +42,23 @@ export default function ExpensesListScreen({ navigation }: any) {
     loadExpenses();
   };
 
-  const handleExport = async (filterType: 'all' | 'month') => {
+  const handleExport = async (filterType: 'all' | 'month' | 'category') => {
     setExportError(null);
     const now = new Date();
     try {
-      await exportExpenses(expenses, {
+      let exportData = expenses;
+      let filterOption: any = { type: 'all' };
+
+      if (filterType === 'month') {
+        filterOption = { type: 'month', year: now.getFullYear(), month: now.getMonth() + 1 };
+      } else if (filterType === 'category') {
+        exportData = filteredExpenses;
+        filterOption = { type: 'all' }; // Data is already filtered manually here for simplicity
+      }
+
+      await exportExpenses(exportData, {
         format: 'csv',
-        filter:
-          filterType === 'month'
-            ? { type: 'month', year: now.getFullYear(), month: now.getMonth() + 1 }
-            : { type: 'all' },
+        filter: filterOption,
       });
       setShowExportModal(false);
     } catch (err: any) {
@@ -83,14 +101,24 @@ export default function ExpensesListScreen({ navigation }: any) {
                 <Text style={styles.exportErrorText}>{exportError}</Text>
               </View>
             )}
+            
+            {categoryFilter && (
+              <TouchableOpacity style={[styles.exportOption, { borderColor: '#10B981', borderWidth: 1 }]} onPress={() => handleExport('category')}>
+                <Text style={styles.exportOptionTitle}>Solo {categoryFilter}</Text>
+                <Text style={styles.exportOptionSubtitle}>{filteredExpenses.length} registros</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity style={styles.exportOption} onPress={() => handleExport('month')}>
               <Text style={styles.exportOptionTitle}>Este mes</Text>
               <Text style={styles.exportOptionSubtitle}>{monthName}</Text>
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.exportOption} onPress={() => handleExport('all')}>
               <Text style={styles.exportOptionTitle}>Todo el historial</Text>
               <Text style={styles.exportOptionSubtitle}>{expenses.length} registros</Text>
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.modalCancelButton} onPress={() => { setShowExportModal(false); setExportError(null); }}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
@@ -99,19 +127,34 @@ export default function ExpensesListScreen({ navigation }: any) {
       )}
 
       <View style={styles.content}>
-        <TouchableOpacity style={styles.exportButton} onPress={() => setShowExportModal(true)}>
-          <Text style={styles.exportButtonText}>↓  Exportar CSV</Text>
-        </TouchableOpacity>
-        {expenses.length === 0 ? (
+        <View style={styles.listHeader}>
+          <Text style={styles.listTitle}>
+            {categoryFilter ? `Gastos: ${categoryFilter}` : 'Todos los gastos'}
+          </Text>
+          <TouchableOpacity style={styles.exportButton} onPress={() => setShowExportModal(true)}>
+            <Text style={styles.exportButtonText}>↓  Exportar</Text>
+          </TouchableOpacity>
+        </View>
+
+        {categoryFilter && (
+          <TouchableOpacity 
+            style={styles.clearFilterButton} 
+            onPress={() => navigation.setParams({ category: undefined })}
+          >
+            <Text style={styles.clearFilterText}>✕ Quitar filtro</Text>
+          </TouchableOpacity>
+        )}
+
+        {filteredExpenses.length === 0 ? (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>No hay gastos registrados</Text>
           </View>
         ) : (
-          expenses.map((expense) => (
+          filteredExpenses.map((expense) => (
             <View key={expense.id} style={styles.expenseCard}>
               <View style={styles.expenseHeader}>
                 <View style={styles.expenseInfo}>
-                  <Text style={styles.expenseTitle}>{expense.description}</Text>
+                  <Text style={styles.expenseTitle}>{expense.description || expense.category}</Text>
                   <Text style={styles.expenseCategory}>{expense.category}</Text>
                 </View>
                 <Text style={styles.expenseAmount}>
@@ -140,13 +183,54 @@ export default function ExpensesListScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: DarkTheme.colors.bgPrimary,
   },
   content: {
     padding: 20,
   },
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  listTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: DarkTheme.colors.textPrimary,
+    flex: 1,
+  },
+  clearFilterButton: {
+    backgroundColor: DarkTheme.colors.bgCard,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: DarkTheme.colors.border,
+  },
+  clearFilterText: {
+    fontSize: 14,
+    color: DarkTheme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  exportButton: {
+    backgroundColor: DarkTheme.colors.bgCard,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderBottomWidth: 3,
+    borderColor: DarkTheme.colors.border,
+  },
+  exportButtonText: {
+    color: DarkTheme.colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
   emptyCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DarkTheme.colors.bgCard,
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
@@ -157,11 +241,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: DarkTheme.colors.textSecondary,
     textAlign: 'center',
   },
   expenseCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DarkTheme.colors.bgCard,
     borderRadius: 24,
     padding: 16,
     marginBottom: 12,
@@ -183,17 +267,17 @@ const styles = StyleSheet.create({
   expenseTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: DarkTheme.colors.textPrimary,
   },
   expenseCategory: {
     fontSize: 14,
-    color: '#6B7280',
+    color: DarkTheme.colors.textPrimary,
     marginTop: 4,
   },
   expenseAmount: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: DarkTheme.colors.textPrimary,
   },
   expenseFooter: {
     flexDirection: 'row',
@@ -202,29 +286,17 @@ const styles = StyleSheet.create({
   },
   expenseDate: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: DarkTheme.colors.textSecondary,
   },
   deleteButton: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: DarkTheme.colors.deleteButtonBg,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   deleteButtonText: {
-    color: '#DC2626',
+    color: DarkTheme.colors.errorText,
     fontWeight: '600',
-  },
-  exportButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  exportButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 15,
   },
   overlay: {
     position: 'absolute',
@@ -239,11 +311,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DarkTheme.colors.bgCard,
     borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 380,
+    borderWidth: 1,
+    borderColor: DarkTheme.colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -253,12 +327,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: DarkTheme.colors.textPrimary,
     marginBottom: 8,
   },
   modalMessage: {
     fontSize: 14,
-    color: '#6B7280',
+    color: DarkTheme.colors.textSecondary,
     marginBottom: 20,
   },
   modalButtons: {
@@ -267,55 +341,57 @@ const styles = StyleSheet.create({
   },
   modalCancelButton: {
     flex: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: DarkTheme.colors.border,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
     marginTop: 8,
   },
   modalCancelText: {
-    color: '#374151',
+    color: DarkTheme.colors.textPrimary,
     fontWeight: '600',
     fontSize: 14,
   },
   modalDestructiveButton: {
     flex: 1,
-    backgroundColor: '#DC2626',
+    backgroundColor: DarkTheme.colors.deleteButtonBg,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
   },
   modalDestructiveText: {
-    color: '#FFFFFF',
+    color: DarkTheme.colors.errorText,
     fontWeight: '600',
     fontSize: 14,
   },
   exportOption: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: DarkTheme.colors.bgCardSecondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: DarkTheme.colors.border,
   },
   exportOptionTitle: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: DarkTheme.colors.textPrimary,
   },
   exportOptionSubtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: DarkTheme.colors.textSecondary,
     marginTop: 2,
   },
   exportErrorBox: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: DarkTheme.colors.deleteButtonBg,
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
     borderLeftWidth: 3,
-    borderLeftColor: '#DC2626',
+    borderLeftColor: DarkTheme.colors.errorText,
   },
   exportErrorText: {
-    color: '#DC2626',
+    color: DarkTheme.colors.errorText,
     fontSize: 13,
   },
 });

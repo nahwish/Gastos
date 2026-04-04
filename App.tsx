@@ -5,7 +5,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { initDatabase } from './database/db';
 import { AuthProvider, useAuth } from './utils/AuthContext';
 import HomeScreen from './screens/HomeScreen';
-import AddExpenseScreen from './screens/AddExpenseScreen';
 import ExpensesListScreen from './screens/ExpensesListScreen';
 import LoginScreen from './screens/LoginScreen';
 
@@ -65,10 +64,10 @@ function AppStack() {
         options={{ headerShown: false }}
       />
       <Stack.Screen 
-        name="AddExpense" 
-        component={AddExpenseScreen}
-        options={{ 
-          title: 'Agregar Gasto',
+        name="ExpensesList" 
+        component={ExpensesListScreen}
+        options={{
+          title: 'Gastos por Categoría',
           headerStyle: { backgroundColor: '#3B82F6' },
           headerTintColor: '#fff',
         }}

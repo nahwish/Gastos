@@ -8,15 +8,22 @@ export interface Expense {
   description: string;
   category: string;
   date: string;
+  expense_type?: 'individual' | 'compartido';
+  discount_amount?: number;
+  discount_type?: 'fixed' | 'percentage';
 }
 
 export const addExpense = async (expense: Omit<Expense, 'id' | 'user_id'>): Promise<number> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
 
+  const expenseType = expense.expense_type ?? 'individual';
+  const discountAmount = expense.discount_amount ?? 0;
+  const discountType = expense.discount_type ?? 'fixed';
+
   const result = await db.runAsync(
-    'INSERT INTO expenses (user_id, amount, description, category, date) VALUES (?, ?, ?, ?, ?)',
-    [userId, expense.amount, expense.description, expense.category, expense.date],
+    'INSERT INTO expenses (user_id, amount, description, category, date, expense_type, discount_amount, discount_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [userId, expense.amount, expense.description, expense.category, expense.date, expenseType, discountAmount, discountType],
   );
   return result.lastInsertRowId;
 };
@@ -26,7 +33,7 @@ export const getAllExpenses = async (): Promise<Expense[]> => {
   if (!userId) throw new Error('No user logged in');
 
   const result = (await db.getAllAsync(
-    'SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC',
+    'SELECT id, user_id, amount, description, category, date, expense_type, discount_amount, discount_type FROM expenses WHERE user_id = ? ORDER BY date DESC',
     [userId],
   )) as Expense[];
   return result;
@@ -40,7 +47,7 @@ export const getExpensesByMonth = async (year: number, month: number): Promise<E
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
   const result = (await db.getAllAsync(
-    'SELECT * FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date DESC',
+    'SELECT id, user_id, amount, description, category, date, expense_type, discount_amount, discount_type FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date DESC',
     [userId, startDate, endDate],
   )) as Expense[];
   return result;
@@ -101,14 +108,36 @@ export interface Category {
   name: string;
   icon: string;
   color: string;
+  user_id?: number | null;
+  is_default?: number;
 }
 
-export const getCategories = async (): Promise<Category[]> => {
+export const getCategories = async (userId?: number): Promise<Category[]> => {
+  if (userId) {
+    const result = (await db.getAllAsync(
+      'SELECT * FROM categories WHERE is_default = 1 OR user_id = ? ORDER BY is_default DESC, id ASC',
+      [userId],
+    )) as Category[];
+    return result;
+  }
   const result = (await db.getAllAsync(
     'SELECT * FROM categories ORDER BY id ASC',
     [],
   )) as Category[];
   return result;
+};
+
+export const addCategory = async (
+  name: string,
+  icon: string,
+  color: string,
+  userId: number,
+): Promise<Category> => {
+  const result = await db.runAsync(
+    'INSERT INTO categories (name, icon, color, user_id, is_default) VALUES (?, ?, ?, ?, 0)',
+    [name, icon, color, userId],
+  );
+  return { id: result.lastInsertRowId, name, icon, color, user_id: userId, is_default: 0 };
 };
 
 export const getTotalByExpenseType = async (

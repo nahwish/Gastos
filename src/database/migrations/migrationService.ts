@@ -46,6 +46,28 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    id: '004_add_discount_fields',
+    up: async (db: any) => {
+      await db.execAsync(
+        `ALTER TABLE expenses ADD COLUMN discount_amount REAL DEFAULT 0;`,
+      );
+      await db.execAsync(
+        `ALTER TABLE expenses ADD COLUMN discount_type TEXT DEFAULT 'fixed';`,
+      );
+    },
+  },
+  {
+    id: '005_custom_categories',
+    up: async (db: any) => {
+      await db.execAsync(
+        `ALTER TABLE categories ADD COLUMN user_id INTEGER DEFAULT NULL;`,
+      );
+      await db.execAsync(
+        `ALTER TABLE categories ADD COLUMN is_default INTEGER DEFAULT 1;`,
+      );
+    },
+  },
 ];
 
 export const runMigrations = async (db: any): Promise<void> => {

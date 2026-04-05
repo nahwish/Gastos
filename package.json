@@ -55,5 +55,13 @@
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "lint-staged": {
+    "src/**/*": {
+      "{ts,tsx}": [
+        "eslint --fix",
+        "prettier --write"
+      ]
+    }
+  }
 }

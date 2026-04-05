@@ -6,6 +6,8 @@ import {
   getTotalByCategory,
   getTotalByExpenseType,
   getFutureExpenses,
+  getCategories,
+  addCategory,
 } from '@/database/repositories/expenseRepository';
 
 jest.mock('@/database/client', () => ({
@@ -27,7 +29,7 @@ describe('ExpenseService', () => {
   });
 
   describe('addExpense', () => {
-    it('debería agregar un gasto correctamente', async () => {
+    it('debería agregar un gasto correctamente con defaults', async () => {
       const db = require('@/database/client').default;
 
       (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 1, changes: 1 });
@@ -43,8 +45,32 @@ describe('ExpenseService', () => {
 
       expect(result).toBe(1);
       expect(db.runAsync).toHaveBeenCalledWith(
-        'INSERT INTO expenses (user_id, amount, description, category, date) VALUES (?, ?, ?, ?, ?)',
-        [1, 100, 'Comida', 'Alimentación', '2024-01-01']
+        'INSERT INTO expenses (user_id, amount, description, category, date, expense_type, discount_amount, discount_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [1, 100, 'Comida', 'Alimentación', '2024-01-01', 'individual', 0, 'fixed']
+      );
+    });
+
+    it('debería agregar un gasto compartido con descuento', async () => {
+      const db = require('@/database/client').default;
+
+      (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 2, changes: 1 });
+
+      const expense = {
+        amount: 500,
+        description: 'Cena',
+        category: 'Alimentación',
+        date: '2024-01-15',
+        expense_type: 'compartido' as const,
+        discount_amount: 10,
+        discount_type: 'percentage' as const,
+      };
+
+      const result = await addExpense(expense);
+
+      expect(result).toBe(2);
+      expect(db.runAsync).toHaveBeenCalledWith(
+        'INSERT INTO expenses (user_id, amount, description, category, date, expense_type, discount_amount, discount_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [1, 500, 'Cena', 'Alimentación', '2024-01-15', 'compartido', 10, 'percentage']
       );
     });
 
@@ -78,7 +104,7 @@ describe('ExpenseService', () => {
 
       expect(result).toEqual(expenses);
       expect(db.getAllAsync).toHaveBeenCalledWith(
-        'SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC',
+        'SELECT id, user_id, amount, description, category, date, expense_type, discount_amount, discount_type FROM expenses WHERE user_id = ? ORDER BY date DESC',
         [1]
       );
     });
@@ -218,6 +244,69 @@ describe('ExpenseService', () => {
       const result = await getFutureExpenses(2024, 1);
 
       expect(result).toBe(0);
+    });
+  });
+
+  describe('getCategories', () => {
+    it('debería retornar todas las categorías sin filtro de usuario', async () => {
+      const db = require('@/database/client').default;
+
+      const categories = [
+        { id: 1, name: 'Alimentación', icon: '🍔', color: '#FF6B6B' },
+        { id: 2, name: 'Transporte', icon: '🚗', color: '#4ECDC4' },
+      ];
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce(categories);
+
+      const result = await getCategories();
+
+      expect(result).toEqual(categories);
+      expect(db.getAllAsync).toHaveBeenCalledWith(
+        'SELECT * FROM categories ORDER BY id ASC',
+        []
+      );
+    });
+
+    it('debería filtrar categorías por usuario cuando se pasa userId', async () => {
+      const db = require('@/database/client').default;
+
+      const categories = [
+        { id: 1, name: 'Alimentación', icon: '🍔', color: '#FF6B6B', is_default: 1, user_id: null },
+        { id: 7, name: 'Mascota', icon: '🐾', color: '#00B894', is_default: 0, user_id: 1 },
+      ];
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce(categories);
+
+      const result = await getCategories(1);
+
+      expect(result).toEqual(categories);
+      expect(db.getAllAsync).toHaveBeenCalledWith(
+        'SELECT * FROM categories WHERE is_default = 1 OR user_id = ? ORDER BY is_default DESC, id ASC',
+        [1]
+      );
+    });
+  });
+
+  describe('addCategory', () => {
+    it('debería crear una categoría custom para el usuario', async () => {
+      const db = require('@/database/client').default;
+
+      (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 7, changes: 1 });
+
+      const result = await addCategory('Mascota', '🐾', '#00B894', 1);
+
+      expect(result).toEqual({
+        id: 7,
+        name: 'Mascota',
+        icon: '🐾',
+        color: '#00B894',
+        user_id: 1,
+        is_default: 0,
+      });
+      expect(db.runAsync).toHaveBeenCalledWith(
+        'INSERT INTO categories (name, icon, color, user_id, is_default) VALUES (?, ?, ?, ?, 0)',
+        ['Mascota', '🐾', '#00B894', 1]
+      );
     });
   });
 });

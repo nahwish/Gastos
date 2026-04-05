@@ -166,28 +166,66 @@ export default function ExpensesListScreen({ navigation, route }: any) {
             <Text style={styles.emptyText}>No hay gastos registrados</Text>
           </View>
         ) : (
-          filteredExpenses.map((expense) => (
-            <View key={expense.id} style={styles.expenseCard}>
-              <View style={styles.expenseHeader}>
-                <View style={styles.expenseInfo}>
-                  <Text style={styles.expenseTitle}>{expense.description || expense.category}</Text>
-                  <Text style={styles.expenseCategory}>{expense.category}</Text>
+          filteredExpenses.map((expense) => {
+            const hasDiscount = (expense.discount_amount ?? 0) > 0;
+            const effectiveAmount = hasDiscount
+              ? expense.discount_type === 'percentage'
+                ? expense.amount * (1 - (expense.discount_amount ?? 0) / 100)
+                : expense.amount - (expense.discount_amount ?? 0)
+              : expense.amount;
+
+            return (
+              <View key={expense.id} style={styles.expenseCard}>
+                <View style={styles.expenseHeader}>
+                  <View style={styles.expenseInfo}>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.expenseTitle}>
+                        {expense.description || expense.category}
+                      </Text>
+                      {expense.expense_type === 'compartido' && (
+                        <View style={styles.sharedBadge}>
+                          <Text style={styles.sharedBadgeText}>🤝</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.expenseCategory}>{expense.category}</Text>
+                  </View>
+                  <View style={styles.amountColumn}>
+                    {hasDiscount ? (
+                      <>
+                        <Text style={styles.originalAmount}>
+                          ${expense.amount.toLocaleString('es-AR')}
+                        </Text>
+                        <Text style={styles.expenseAmount}>
+                          ${effectiveAmount.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        </Text>
+                        <View style={styles.discountBadge}>
+                          <Text style={styles.discountBadgeText}>
+                            ↓{expense.discount_type === 'percentage' ? `${expense.discount_amount}%` : `$${expense.discount_amount}`}
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <Text style={styles.expenseAmount}>
+                        ${expense.amount.toLocaleString('es-AR')}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <Text style={styles.expenseAmount}>${expense.amount.toLocaleString('es-AR')}</Text>
+                <View style={styles.expenseFooter}>
+                  <Text style={styles.expenseDate}>
+                    {new Date(expense.date).toLocaleDateString('es-ES')}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(expense.id!)}
+                  >
+                    <Text style={styles.deleteButtonText}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.expenseFooter}>
-                <Text style={styles.expenseDate}>
-                  {new Date(expense.date).toLocaleDateString('es-ES')}
-                </Text>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDelete(expense.id!)}
-                >
-                  <Text style={styles.deleteButtonText}>Eliminar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))
+            );
+          })
         )}
       </View>
     </ScrollView>
@@ -278,20 +316,54 @@ const styles = StyleSheet.create({
   expenseInfo: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   expenseTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: DarkTheme.colors.textPrimary,
+  },
+  sharedBadge: {
+    backgroundColor: DarkTheme.colors.accentYellow + '25',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  sharedBadgeText: {
+    fontSize: 14,
   },
   expenseCategory: {
     fontSize: 14,
     color: DarkTheme.colors.textPrimary,
     marginTop: 4,
   },
+  amountColumn: {
+    alignItems: 'flex-end',
+  },
+  originalAmount: {
+    fontSize: 14,
+    color: DarkTheme.colors.textSecondary,
+    textDecorationLine: 'line-through',
+  },
   expenseAmount: {
     fontSize: 20,
     fontWeight: 'bold',
     color: DarkTheme.colors.textPrimary,
+  },
+  discountBadge: {
+    backgroundColor: DarkTheme.colors.accentGreen + '25',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  discountBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: DarkTheme.colors.accentGreen,
   },
   expenseFooter: {
     flexDirection: 'row',

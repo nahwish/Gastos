@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet } from 'react-native';
-import { addExpense } from '../database/expenseService';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  StyleSheet,
+} from 'react-native';
+import { addExpense } from '@/database/repositories/expenseRepository';
 
 const categories = ['Alimentación', 'Transporte', 'Entretenimiento', 'Salud', 'Hogar', 'Otros'];
 
@@ -59,16 +67,12 @@ export default function AddExpenseScreen({ navigation }: any) {
             {categories.map((cat) => (
               <TouchableOpacity
                 key={cat}
-                style={[
-                  styles.categoryChip,
-                  category === cat && styles.categoryChipSelected
-                ]}
+                style={[styles.categoryChip, category === cat && styles.categoryChipSelected]}
                 onPress={() => setCategory(cat)}
               >
-                <Text style={[
-                  styles.categoryText,
-                  category === cat && styles.categoryTextSelected
-                ]}>
+                <Text
+                  style={[styles.categoryText, category === cat && styles.categoryTextSelected]}
+                >
                   {cat}
                 </Text>
               </TouchableOpacity>
@@ -76,17 +80,11 @@ export default function AddExpenseScreen({ navigation }: any) {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSave}
-        >
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Guardar Gasto</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
           <Text style={styles.cancelButtonText}>Cancelar</Text>
         </TouchableOpacity>
       </View>

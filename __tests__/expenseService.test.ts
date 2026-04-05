@@ -6,9 +6,9 @@ import {
   getTotalByCategory,
   getTotalByExpenseType,
   getFutureExpenses,
-} from '../database/expenseService';
+} from '@/database/repositories/expenseRepository';
 
-jest.mock('../database/db', () => ({
+jest.mock('@/database/client', () => ({
   __esModule: true,
   default: {
     runAsync: jest.fn(),
@@ -17,7 +17,7 @@ jest.mock('../database/db', () => ({
   },
 }));
 
-jest.mock('../database/authService', () => ({
+jest.mock('@/database/repositories/userRepository', () => ({
   getCurrentUserId: jest.fn(() => Promise.resolve(1)),
 }));
 
@@ -28,7 +28,7 @@ describe('ExpenseService', () => {
 
   describe('addExpense', () => {
     it('debería agregar un gasto correctamente', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 1, changes: 1 });
 
@@ -49,7 +49,7 @@ describe('ExpenseService', () => {
     });
 
     it('debería rechazar si no hay usuario autenticado', async () => {
-      const authService = require('../database/authService');
+      const authService = require('@/database/repositories/userRepository');
       (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
 
       const expense = {
@@ -65,7 +65,7 @@ describe('ExpenseService', () => {
 
   describe('getAllExpenses', () => {
     it('debería obtener todos los gastos del usuario', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       const expenses = [
         { id: 1, user_id: 1, amount: 100, description: 'Comida', category: 'Alimentación', date: '2024-01-01' },
@@ -84,7 +84,7 @@ describe('ExpenseService', () => {
     });
 
     it('debería retornar array vacío si no hay gastos', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getAllAsync as jest.Mock).mockResolvedValueOnce([]);
 
@@ -96,7 +96,7 @@ describe('ExpenseService', () => {
 
   describe('deleteExpense', () => {
     it('debería eliminar un gasto', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.runAsync as jest.Mock).mockResolvedValueOnce({ changes: 1 });
 
@@ -108,7 +108,7 @@ describe('ExpenseService', () => {
 
   describe('getMonthlyTotal', () => {
     it('debería calcular el total mensual', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({ total: 500 });
 
@@ -122,7 +122,7 @@ describe('ExpenseService', () => {
     });
 
     it('debería retornar 0 si no hay gastos en el mes', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
 
@@ -134,7 +134,7 @@ describe('ExpenseService', () => {
 
   describe('getTotalByCategory', () => {
     it('debería agrupar gastos por categoría', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       const totals = [
         { category: 'Alimentación', total: 300 },
@@ -155,7 +155,7 @@ describe('ExpenseService', () => {
 
   describe('getTotalByExpenseType', () => {
     it('debería retornar totales separados por tipo de gasto', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getAllAsync as jest.Mock).mockResolvedValueOnce([
         { expense_type: 'compartido', total: 200 },
@@ -172,7 +172,7 @@ describe('ExpenseService', () => {
     });
 
     it('debería retornar shared=0 cuando no hay gastos compartidos', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getAllAsync as jest.Mock).mockResolvedValueOnce([
         { expense_type: 'individual', total: 500 },
@@ -184,7 +184,7 @@ describe('ExpenseService', () => {
     });
 
     it('debería retornar { shared: 0, individual: monthlyTotal } si la columna no existe', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getAllAsync as jest.Mock).mockRejectedValueOnce(new Error('no such column: expense_type'));
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({ total: 400 });
@@ -197,7 +197,7 @@ describe('ExpenseService', () => {
 
   describe('getFutureExpenses', () => {
     it('debería retornar el total de gastos futuros del mes', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({ total: 150 });
 
@@ -211,7 +211,7 @@ describe('ExpenseService', () => {
     });
 
     it('debería retornar 0 si no hay gastos futuros', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
 

@@ -1,5 +1,5 @@
 import { Platform, Share } from 'react-native';
-import { Expense } from '../database/expenseService';
+import type { Expense } from '@/database/repositories/expenseRepository';
 
 // ─── Tipos públicos ────────────────────────────────────────────────────────────
 //
@@ -95,7 +95,7 @@ const shareOnMobile = async (content: string, filename: string): Promise<void> =
 
 export const exportExpenses = async (
   expenses: Expense[],
-  options: ExportOptions
+  options: ExportOptions,
 ): Promise<void> => {
   const { format, filter, filename } = options;
 

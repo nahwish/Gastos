@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useAuth } from '../utils/AuthContext';
+import { useAuth } from '@/features/auth/services/AuthContext';
 
 export default function LoginScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -144,7 +144,7 @@ export default function LoginScreen() {
             disabled={isLoading}
           >
             <Text style={styles.submitButtonText}>
-              {isLoading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')}
+              {isLoading ? 'Cargando...' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </Text>
           </TouchableOpacity>
 
@@ -152,24 +152,22 @@ export default function LoginScreen() {
             <Text style={styles.toggleText}>
               {isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
             </Text>
-            <TouchableOpacity onPress={() => {
-              setIsLogin(!isLogin);
-              setEmail('');
-              setUsername('');
-              setPassword('');
-              setConfirmPassword('');
-            }}>
-              <Text style={styles.toggleLink}>
-                {isLogin ? 'Regístrate' : 'Inicia sesión'}
-              </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setIsLogin(!isLogin);
+                setEmail('');
+                setUsername('');
+                setPassword('');
+                setConfirmPassword('');
+              }}
+            >
+              <Text style={styles.toggleLink}>{isLogin ? 'Regístrate' : 'Inicia sesión'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.footerContainer}>
-          <Text style={styles.footerText}>
-            Controla tus gastos de forma simple y eficiente
-          </Text>
+          <Text style={styles.footerText}>Controla tus gastos de forma simple y eficiente</Text>
         </View>
       </View>
     </ScrollView>

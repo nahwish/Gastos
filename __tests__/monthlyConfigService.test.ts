@@ -1,10 +1,10 @@
 import {
   getMonthlyConfig,
   saveMonthlyConfig,
-} from '../database/monthlyConfigService';
-import { MonthlyConfig } from '../database/types';
+} from '@/database/repositories/configRepository';
+import { MonthlyConfig } from '@/shared/types/database';
 
-jest.mock('../database/db', () => ({
+jest.mock('@/database/client', () => ({
   __esModule: true,
   default: {
     runAsync: jest.fn(),
@@ -19,7 +19,7 @@ describe('monthlyConfigService', () => {
 
   describe('getMonthlyConfig', () => {
     it('debería retornar la configuración mensual cuando existe', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
       const mockConfig: MonthlyConfig = {
         id: 1,
         user_id: 1,
@@ -41,7 +41,7 @@ describe('monthlyConfigService', () => {
     });
 
     it('debería retornar null cuando no existe registro', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
 
@@ -51,7 +51,7 @@ describe('monthlyConfigService', () => {
     });
 
     it('debería retornar null cuando el resultado es undefined (mock web)', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(undefined);
 
@@ -61,7 +61,7 @@ describe('monthlyConfigService', () => {
     });
 
     it('debería consultar con los parámetros correctos', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
 
@@ -74,7 +74,7 @@ describe('monthlyConfigService', () => {
     });
 
     it('debería retornar config con salary y savings_goal nulos', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
       const mockConfig: MonthlyConfig = {
         id: 2,
         user_id: 1,
@@ -96,7 +96,7 @@ describe('monthlyConfigService', () => {
 
   describe('saveMonthlyConfig', () => {
     it('debería guardar la configuración mensual correctamente', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 1, changes: 1 });
 
@@ -117,7 +117,7 @@ describe('monthlyConfigService', () => {
     });
 
     it('debería guardar config con salary y savings_goal nulos', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 2, changes: 1 });
 
@@ -138,7 +138,7 @@ describe('monthlyConfigService', () => {
     });
 
     it('debería usar INSERT OR REPLACE para actualizar registros existentes', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.runAsync as jest.Mock).mockResolvedValue({ lastInsertRowId: 1, changes: 1 });
 

@@ -6,9 +6,13 @@
   "transform": {
     "^.+\\.tsx?$": "babel-jest"
   },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1"
+  },
   "collectCoverageFrom": [
-    "database/**/*.ts",
-    "utils/**/*.ts",
+    "src/database/**/*.ts",
+    "src/features/**/*.ts",
+    "src/shared/**/*.ts",
     "!**/*.d.ts",
     "!**/node_modules/**"
   ],

@@ -1,8 +1,8 @@
-import { register, login, logout, getCurrentUser, getCurrentUserId } from '../database/authService';
+import { register, login, logout, getCurrentUser, getCurrentUserId } from '@/database/repositories/userRepository';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Mock del módulo de db
-jest.mock('../database/db', () => ({
+jest.mock('@/database/client', () => ({
   __esModule: true,
   default: {
     getFirstAsync: jest.fn(),
@@ -20,7 +20,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('debería registrar un nuevo usuario correctamente', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
       
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null); // No existe usuario
       (db.runAsync as jest.Mock).mockResolvedValueOnce({ lastInsertRowId: 1, changes: 1 });
@@ -46,7 +46,7 @@ describe('AuthService', () => {
     });
 
     it('debería rechazar si el usuario ya existe', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({
         id: 1,
@@ -59,7 +59,7 @@ describe('AuthService', () => {
     });
 
     it('debería rechazar si email ya existe', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({
         id: 1,
@@ -74,7 +74,7 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('debería loguear usuario con credenciales correctas', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({
         id: 1,
@@ -98,7 +98,7 @@ describe('AuthService', () => {
     });
 
     it('debería rechazar con email incorrecto', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce(null);
 
@@ -108,7 +108,7 @@ describe('AuthService', () => {
     });
 
     it('debería rechazar con contraseña incorrecta', async () => {
-      const db = require('../database/db').default;
+      const db = require('@/database/client').default;
 
       (db.getFirstAsync as jest.Mock).mockResolvedValueOnce({
         id: 1,

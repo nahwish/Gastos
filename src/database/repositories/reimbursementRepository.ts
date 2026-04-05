@@ -1,4 +1,4 @@
-import db from './db';
+import db from '@/database/client';
 
 /**
  * Returns the total reimbursements for a user in a given month/year.
@@ -7,7 +7,7 @@ import db from './db';
 export async function getMonthlyReimbursements(
   userId: number,
   year: number,
-  month: number
+  month: number,
 ): Promise<number> {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month, 0).getDate();
@@ -15,7 +15,7 @@ export async function getMonthlyReimbursements(
 
   const result = await db.getFirstAsync(
     'SELECT SUM(amount) as total FROM reimbursements WHERE user_id = ? AND date BETWEEN ? AND ?',
-    [userId, startDate, endDate]
+    [userId, startDate, endDate],
   );
 
   if (!result || result.total == null) return 0;

@@ -8,7 +8,8 @@ import {
   ScrollView,
   Pressable,
 } from 'react-native';
-import { addExpense, getCategories, Category } from '../database/expenseService';
+import type { Category } from '@/database/repositories/expenseRepository';
+import { addExpense, getCategories } from '@/database/repositories/expenseRepository';
 
 const FALLBACK_CATEGORIES: Category[] = [
   { id: 1, name: 'Alimentación', icon: '🍔', color: '#FF6B6B' },
@@ -105,12 +106,12 @@ export default function AddExpenseModal({ visible, onClose, onSaved }: Props) {
 
   const getCategoryIcon = (cat: Category) => {
     const iconMap: Record<string, string> = {
-      'Alimentación': '🍔',
-      'Transporte': '🚗',
-      'Entretenimiento': '🎬',
-      'Salud': '⚕️',
-      'Hogar': '🏠',
-      'Otros': '📦',
+      Alimentación: '🍔',
+      Transporte: '🚗',
+      Entretenimiento: '🎬',
+      Salud: '⚕️',
+      Hogar: '🏠',
+      Otros: '📦',
     };
     return cat.icon || iconMap[cat.name] || '📌';
   };
@@ -187,16 +188,16 @@ export default function AddExpenseModal({ visible, onClose, onSaved }: Props) {
                   <Text style={styles.pickerItemText}>
                     {getCategoryIcon(cat)} {cat.name}
                   </Text>
-                  {selectedCategory?.id === cat.id && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
+                  {selectedCategory?.id === cat.id && <Text style={styles.checkmark}>✓</Text>}
                 </TouchableOpacity>
               ))}
             </View>
           )}
 
           {/* Description (optional) */}
-          <Text style={styles.label}>Descripción <Text style={styles.optionalTag}>(opcional)</Text></Text>
+          <Text style={styles.label}>
+            Descripción <Text style={styles.optionalTag}>(opcional)</Text>
+          </Text>
           <TextInput
             style={styles.descriptionInput}
             placeholder="Ej: Almuerzo, Uber al trabajo..."
@@ -213,9 +214,7 @@ export default function AddExpenseModal({ visible, onClose, onSaved }: Props) {
             disabled={saving}
             activeOpacity={0.8}
           >
-            <Text style={styles.saveButtonText}>
-              {saving ? 'Guardando...' : 'Guardar'}
-            </Text>
+            <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

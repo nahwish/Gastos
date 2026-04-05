@@ -1,5 +1,5 @@
-import db from './db';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import db from '@/database/client';
 
 export interface User {
   id: number;
@@ -32,12 +32,16 @@ const comparePassword = async (password: string, hash: string): Promise<boolean>
   }
 };
 
-export const register = async (username: string, email: string, password: string): Promise<User | null> => {
+export const register = async (
+  username: string,
+  email: string,
+  password: string,
+): Promise<User | null> => {
   try {
     // Validar que no exista usuario
     const existingUser = await db.getFirstAsync(
       'SELECT * FROM users WHERE username = ? OR email = ?',
-      [username, email]
+      [username, email],
     );
 
     if (existingUser) {
@@ -48,12 +52,12 @@ export const register = async (username: string, email: string, password: string
 
     const result = await db.runAsync(
       'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-      [username, email, hashedPassword]
+      [username, email, hashedPassword],
     );
 
     const newUser = await db.getFirstAsync(
       'SELECT id, username, email, created_at FROM users WHERE id = ?',
-      [result.lastInsertRowId]
+      [result.lastInsertRowId],
     );
 
     return newUser;
@@ -65,10 +69,7 @@ export const register = async (username: string, email: string, password: string
 
 export const login = async (email: string, password: string): Promise<User | null> => {
   try {
-    const user = await db.getFirstAsync(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
+    const user = await db.getFirstAsync('SELECT * FROM users WHERE email = ?', [email]);
 
     if (!user) {
       throw new Error('Usuario o contraseña incorrectos');
@@ -82,12 +83,15 @@ export const login = async (email: string, password: string): Promise<User | nul
 
     // Guardar sesión
     await AsyncStorage.setItem('currentUserId', user.id.toString());
-    await AsyncStorage.setItem('currentUser', JSON.stringify({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      created_at: user.created_at,
-    }));
+    await AsyncStorage.setItem(
+      'currentUser',
+      JSON.stringify({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        created_at: user.created_at,
+      }),
+    );
 
     return {
       id: user.id,

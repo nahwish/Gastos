@@ -1,5 +1,5 @@
-import db from './db';
-import { getCurrentUserId } from './authService';
+import db from '@/database/client';
+import { getCurrentUserId } from '@/database/repositories/userRepository';
 
 export interface Expense {
   id?: number;
@@ -13,10 +13,10 @@ export interface Expense {
 export const addExpense = async (expense: Omit<Expense, 'id' | 'user_id'>): Promise<number> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
-  
+
   const result = await db.runAsync(
     'INSERT INTO expenses (user_id, amount, description, category, date) VALUES (?, ?, ?, ?, ?)',
-    [userId, expense.amount, expense.description, expense.category, expense.date]
+    [userId, expense.amount, expense.description, expense.category, expense.date],
   );
   return result.lastInsertRowId;
 };
@@ -24,43 +24,46 @@ export const addExpense = async (expense: Omit<Expense, 'id' | 'user_id'>): Prom
 export const getAllExpenses = async (): Promise<Expense[]> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
-  
-  const result = await db.getAllAsync(
+
+  const result = (await db.getAllAsync(
     'SELECT * FROM expenses WHERE user_id = ? ORDER BY date DESC',
-    [userId]
-  ) as Expense[];
+    [userId],
+  )) as Expense[];
   return result;
 };
 
 export const getExpensesByMonth = async (year: number, month: number): Promise<Expense[]> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
-  
+
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
-  
-  const result = await db.getAllAsync(
+
+  const result = (await db.getAllAsync(
     'SELECT * FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ? ORDER BY date DESC',
-    [userId, startDate, endDate]
-  ) as Expense[];
+    [userId, startDate, endDate],
+  )) as Expense[];
   return result;
 };
 
 export const getExpensesByCategory = async (category: string): Promise<Expense[]> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
-  
-  const result = await db.getAllAsync(
+
+  const result = (await db.getAllAsync(
     'SELECT * FROM expenses WHERE user_id = ? AND category = ? ORDER BY date DESC',
-    [userId, category]
-  ) as Expense[];
+    [userId, category],
+  )) as Expense[];
   return result;
 };
 
-export const updateExpense = async (id: number, expense: Omit<Expense, 'id' | 'user_id'>): Promise<void> => {
+export const updateExpense = async (
+  id: number,
+  expense: Omit<Expense, 'id' | 'user_id'>,
+): Promise<void> => {
   await db.runAsync(
     'UPDATE expenses SET amount = ?, description = ?, category = ?, date = ? WHERE id = ?',
-    [expense.amount, expense.description, expense.category, expense.date, id]
+    [expense.amount, expense.description, expense.category, expense.date, id],
   );
 };
 
@@ -68,28 +71,28 @@ export const deleteExpense = async (id: number): Promise<void> => {
   await db.runAsync('DELETE FROM expenses WHERE id = ?', [id]);
 };
 
-export const getTotalByCategory = async (): Promise<{category: string, total: number}[]> => {
+export const getTotalByCategory = async (): Promise<{ category: string; total: number }[]> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
-  
-  const result = await db.getAllAsync(
+
+  const result = (await db.getAllAsync(
     'SELECT category, SUM(amount) as total FROM expenses WHERE user_id = ? GROUP BY category ORDER BY total DESC',
-    [userId]
-  ) as {category: string, total: number}[];
+    [userId],
+  )) as { category: string; total: number }[];
   return result;
 };
 
 export const getMonthlyTotal = async (year: number, month: number): Promise<number> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
-  
+
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
-  
-  const result = await db.getFirstAsync(
+
+  const result = (await db.getFirstAsync(
     'SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND date BETWEEN ? AND ?',
-    [userId, startDate, endDate]
-  ) as {total: number} | null;
+    [userId, startDate, endDate],
+  )) as { total: number } | null;
   return result?.total || 0;
 };
 
@@ -101,11 +104,17 @@ export interface Category {
 }
 
 export const getCategories = async (): Promise<Category[]> => {
-  const result = await db.getAllAsync('SELECT * FROM categories ORDER BY id ASC', []) as Category[];
+  const result = (await db.getAllAsync(
+    'SELECT * FROM categories ORDER BY id ASC',
+    [],
+  )) as Category[];
   return result;
 };
 
-export const getTotalByExpenseType = async (year: number, month: number): Promise<{shared: number, individual: number}> => {
+export const getTotalByExpenseType = async (
+  year: number,
+  month: number,
+): Promise<{ shared: number; individual: number }> => {
   const userId = await getCurrentUserId();
   if (!userId) throw new Error('No user logged in');
 
@@ -113,13 +122,13 @@ export const getTotalByExpenseType = async (year: number, month: number): Promis
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
   try {
-    const rows = await db.getAllAsync(
+    const rows = (await db.getAllAsync(
       `SELECT COALESCE(expense_type, 'individual') as expense_type, SUM(amount) as total
        FROM expenses
        WHERE user_id = ? AND date BETWEEN ? AND ?
        GROUP BY COALESCE(expense_type, 'individual')`,
-      [userId, startDate, endDate]
-    ) as {expense_type: string, total: number}[];
+      [userId, startDate, endDate],
+    )) as { expense_type: string; total: number }[];
 
     let shared = 0;
     let individual = 0;
@@ -146,11 +155,11 @@ export const getFutureExpenses = async (year: number, month: number): Promise<nu
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
 
-  const result = await db.getFirstAsync(
+  const result = (await db.getFirstAsync(
     `SELECT SUM(amount) as total FROM expenses
      WHERE user_id = ? AND date > ? AND date BETWEEN ? AND ?`,
-    [userId, today, startDate, endDate]
-  ) as {total: number} | null;
+    [userId, today, startDate, endDate],
+  )) as { total: number } | null;
 
   return result?.total || 0;
 };

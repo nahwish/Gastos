@@ -1,5 +1,13 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User, login, register, logout, getCurrentUser } from '../database/authService';
+import type { ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import type {
+  User} from '@/database/repositories/userRepository';
+import {
+  login,
+  register,
+  logout,
+  getCurrentUser,
+} from '@/database/repositories/userRepository';
 
 interface AuthContextType {
   user: User | null;
@@ -32,31 +40,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const handleLogin = async (email: string, password: string) => {
-    try {
-      const loggedInUser = await login(email, password);
-      setUser(loggedInUser);
-    } catch (error) {
-      throw error;
-    }
+    const loggedInUser = await login(email, password);
+    setUser(loggedInUser);
   };
 
   const handleRegister = async (username: string, email: string, password: string) => {
-    try {
-      const newUser = await register(username, email, password);
-      // No hacemos login automático, dejan que hagan login manualmente
-      // setUser(newUser);
-    } catch (error) {
-      throw error;
-    }
+    await register(username, email, password);
+    // No hacemos login automático, dejan que hagan login manualmente
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      setUser(null);
-    } catch (error) {
-      throw error;
-    }
+    await logout();
+    setUser(null);
   };
 
   return (

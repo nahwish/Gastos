@@ -1,5 +1,5 @@
-import db from './db';
-import { MonthlyConfig } from './types';
+import db from '@/database/client';
+import type { MonthlyConfig } from '@/shared/types/database';
 
 /**
  * Retrieves the monthly config for a given user, year, and month.
@@ -9,12 +9,12 @@ import { MonthlyConfig } from './types';
 export const getMonthlyConfig = async (
   userId: number,
   year: number,
-  month: number
+  month: number,
 ): Promise<MonthlyConfig | null> => {
-  const result = await db.getFirstAsync(
+  const result = (await db.getFirstAsync(
     'SELECT * FROM monthly_config WHERE user_id = ? AND year = ? AND month = ?',
-    [userId, year, month]
-  ) as MonthlyConfig | null;
+    [userId, year, month],
+  )) as MonthlyConfig | null;
 
   if (!result) return null;
   return result;
@@ -27,6 +27,6 @@ export const getMonthlyConfig = async (
 export const saveMonthlyConfig = async (config: MonthlyConfig): Promise<void> => {
   await db.runAsync(
     'INSERT OR REPLACE INTO monthly_config (user_id, year, month, salary, savings_goal) VALUES (?, ?, ?, ?, ?)',
-    [config.user_id, config.year, config.month, config.salary, config.savings_goal]
+    [config.user_id, config.year, config.month, config.salary, config.savings_goal],
   );
 };

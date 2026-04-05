@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { getAllExpenses, deleteExpense, Expense } from '../database/expenseService';
-import { exportExpenses } from '../utils/exportService';
-import { DarkTheme } from '../theme/darkTheme';
+import type { Expense } from '@/database/repositories/expenseRepository';
+import { getAllExpenses, deleteExpense } from '@/database/repositories/expenseRepository';
+import { exportExpenses } from '@/features/expenses/services/exportService';
+import { DarkTheme } from '@/shared/theme/darkTheme';
 
 export default function ExpensesListScreen({ navigation, route }: any) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -16,9 +17,9 @@ export default function ExpensesListScreen({ navigation, route }: any) {
   const loadExpenses = async () => {
     const data = await getAllExpenses();
     setExpenses(data);
-    
+
     if (categoryFilter) {
-      const filtered = data.filter(e => e.category === categoryFilter);
+      const filtered = data.filter((e) => e.category === categoryFilter);
       setFilteredExpenses(filtered);
     } else {
       setFilteredExpenses(data);
@@ -71,15 +72,19 @@ export default function ExpensesListScreen({ navigation, route }: any) {
 
   return (
     <ScrollView style={styles.container}>
-
       {/* Modal de confirmación de eliminación */}
       {showDeleteConfirm != null && (
         <View style={styles.overlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Eliminar Gasto</Text>
-            <Text style={styles.modalMessage}>¿Estás seguro de que querés eliminar este gasto?</Text>
+            <Text style={styles.modalMessage}>
+              ¿Estás seguro de que querés eliminar este gasto?
+            </Text>
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowDeleteConfirm(null)}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowDeleteConfirm(null)}
+              >
                 <Text style={styles.modalCancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalDestructiveButton} onPress={confirmDelete}>
@@ -95,15 +100,20 @@ export default function ExpensesListScreen({ navigation, route }: any) {
         <View style={styles.overlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Exportar gastos</Text>
-            <Text style={styles.modalMessage}>Seleccioná qué registros querés exportar como CSV:</Text>
+            <Text style={styles.modalMessage}>
+              Seleccioná qué registros querés exportar como CSV:
+            </Text>
             {exportError && (
               <View style={styles.exportErrorBox}>
                 <Text style={styles.exportErrorText}>{exportError}</Text>
               </View>
             )}
-            
+
             {categoryFilter && (
-              <TouchableOpacity style={[styles.exportOption, { borderColor: '#10B981', borderWidth: 1 }]} onPress={() => handleExport('category')}>
+              <TouchableOpacity
+                style={[styles.exportOption, { borderColor: '#10B981', borderWidth: 1 }]}
+                onPress={() => handleExport('category')}
+              >
                 <Text style={styles.exportOptionTitle}>Solo {categoryFilter}</Text>
                 <Text style={styles.exportOptionSubtitle}>{filteredExpenses.length} registros</Text>
               </TouchableOpacity>
@@ -119,7 +129,13 @@ export default function ExpensesListScreen({ navigation, route }: any) {
               <Text style={styles.exportOptionSubtitle}>{expenses.length} registros</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalCancelButton} onPress={() => { setShowExportModal(false); setExportError(null); }}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => {
+                setShowExportModal(false);
+                setExportError(null);
+              }}
+            >
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
@@ -132,13 +148,13 @@ export default function ExpensesListScreen({ navigation, route }: any) {
             {categoryFilter ? `Gastos: ${categoryFilter}` : 'Todos los gastos'}
           </Text>
           <TouchableOpacity style={styles.exportButton} onPress={() => setShowExportModal(true)}>
-            <Text style={styles.exportButtonText}>↓  Exportar</Text>
+            <Text style={styles.exportButtonText}>↓ Exportar</Text>
           </TouchableOpacity>
         </View>
 
         {categoryFilter && (
-          <TouchableOpacity 
-            style={styles.clearFilterButton} 
+          <TouchableOpacity
+            style={styles.clearFilterButton}
             onPress={() => navigation.setParams({ category: undefined })}
           >
             <Text style={styles.clearFilterText}>✕ Quitar filtro</Text>
@@ -157,9 +173,7 @@ export default function ExpensesListScreen({ navigation, route }: any) {
                   <Text style={styles.expenseTitle}>{expense.description || expense.category}</Text>
                   <Text style={styles.expenseCategory}>{expense.category}</Text>
                 </View>
-                <Text style={styles.expenseAmount}>
-                  ${expense.amount.toLocaleString('es-AR')}
-                </Text>
+                <Text style={styles.expenseAmount}>${expense.amount.toLocaleString('es-AR')}</Text>
               </View>
               <View style={styles.expenseFooter}>
                 <Text style={styles.expenseDate}>

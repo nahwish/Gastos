@@ -44,6 +44,9 @@ A continuación se explica qué es cada tecnología y por qué se usa en este pr
 | **expo-sqlite** | ^16.0.10 | Base de datos local que vive dentro del dispositivo. No necesita conexión a internet ni servidores externos. |
 | **AsyncStorage** | ^1.23.1 | Sistema de almacenamiento clave-valor para guardar la sesión del usuario y como motor alternativo de base de datos en la versión web. |
 | **React Navigation** | ^7.x | Biblioteca que maneja la navegación entre pantallas (equivalente al sistema de "páginas" en una web). |
+| **ESLint** | ^8.57.1 | Herramienta de análisis estático que ayuda a mantener un código limpio y consistente, detectando errores y malas prácticas automáticamente. |
+| **Prettier** | ^3.8.1 | Formateador de código automático que asegura que todo el equipo trabaje con el mismo estilo visual (comas, espacios, comillas). |
+| **Husky + lint-staged** | ^9.x / ^16.x | Automatización que ejecuta el linter y el formateador antes de cada `git commit`, garantizando que no suba código "sucio" al repositorio. |
 | **NativeWind + Tailwind CSS** | ^4.2.1 / ^3.4.19 | Sistema de estilos visuales. Permite dar forma y color a los componentes usando clases predefinidas. |
 | **expo-linear-gradient** | latest | Gradientes de color para las tarjetas del dashboard financiero. |
 | **Jest** | ^30.2.0 | Framework de tests automatizados. Permite verificar que el código funciona correctamente sin ejecutar la app manualmente. |
@@ -53,56 +56,47 @@ A continuación se explica qué es cada tecnología y por qué se usa en este pr
 
 ## 3. Estructura del proyecto
 
+La aplicación sigue una arquitectura basada en **features** (funcionalidades) para facilitar la escalabilidad y el mantenimiento.
+
 ```
-gastos-app/
+src/
 │
-├── App.tsx                    # Punto de entrada: configuración de navegación y autenticación
-├── index.ts                   # Archivo raíz que Expo carga al iniciar
-├── package.json               # Lista de dependencias y scripts del proyecto
-├── tsconfig.json              # Configuración de TypeScript
-├── babel.config.js            # Configuración del compilador de JavaScript
-├── tailwind.config.js         # Configuración del sistema de estilos
+├── app/                        # Configuración global y entry point
+│   ├── App.tsx                 # Root component con navegación y providers
+│   └── navigation/             # Definiciones de rutas y tipos de navegación
 │
-├── theme/
-│   └── darkTheme.ts           # Tokens de color y tipografía del tema oscuro
+├── features/                   # Módulos de funcionalidad (Dominio)
+│   ├── auth/                   # Pantallas y servicios de login/registro
+│   ├── expenses/               # Pantallas, componentes y lógica de gastos
+│   └── config/                 # Configuración de sueldo y metas de ahorro
 │
-├── database/                  # Capa de datos: acceso a la base de datos
-│   ├── db.ts                  # Inicialización y configuración de SQLite (+ fallback para web)
-│   ├── authService.ts         # Lógica de registro, login, logout y sesión de usuario
-│   ├── expenseService.ts      # Operaciones CRUD sobre gastos
-│   ├── migrationService.ts    # Migraciones de esquema de BD (no destructivas)
-│   ├── monthlyConfigService.ts# Sueldo y objetivo de ahorro por mes/usuario
-│   ├── reimbursementService.ts# Reintegros del usuario
-│   └── types.ts               # Interfaces TypeScript compartidas y funciones de cálculo
+├── shared/                     # Código compartido entre múltiples funcionalidades
+│   ├── components/             # UI genérica (GradientCard, ProgressBar, etc.)
+│   ├── theme/                  # Tokens de colores, tipografía y darkTheme.ts
+│   ├── types/                  # Tipos globales e interfaces de base de datos
+│   └── utils/                  # Utilidades como formateo de moneda y exportación
 │
-├── components/                # Componentes reutilizables
-│   ├── AddExpenseModal.tsx     # Modal para agregar un nuevo gasto
-│   ├── GradientCard.tsx        # Tarjeta con gradiente de color (dashboard)
-│   ├── SummaryCard.tsx         # Tarjeta oscura con label, monto y porcentaje
-│   ├── ProgressBar.tsx         # Barra de progreso (objetivo de ahorro)
-│   └── SalaryConfigModal.tsx   # Modal para configurar sueldo y objetivo de ahorro
-│
-├── screens/                   # Pantallas visibles de la aplicación
-│   ├── LoginScreen.tsx        # Pantalla de inicio de sesión y registro
-│   ├── HomeScreen.tsx         # Dashboard principal con resumen mensual (tema oscuro)
-│   ├── ExpensesListScreen.tsx # Lista completa de gastos con opción de borrar (tema oscuro)
-│   └── AddExpenseScreen.tsx   # Formulario para agregar un nuevo gasto
-│
-├── utils/
-│   ├── AuthContext.tsx        # Estado global de autenticación compartido entre pantallas
-│   └── exportService.ts       # Exportación de gastos a CSV / Excel / PDF
-│
-├── __tests__/                 # Tests automatizados
-│   ├── authService.test.ts    # Tests del servicio de autenticación
-│   ├── expenseService.test.ts # Tests del servicio de gastos
-│   └── darkTheme.property.test.ts # Property-based tests del rediseño (fast-check)
-│
-└── assets/                    # Imágenes, íconos y recursos estáticos
+└── database/                   # Capa de persistencia local
+    ├── client.ts               # Configuración central de SQLite (+ fallback web)
+    ├── migrations/             # Scripts de migración de esquema de BD
+    └── repositories/           # Patrón Repository: queries SQL aisladas
+        ├── expenseRepository.ts
+        ├── userRepository.ts
+        └── configRepository.ts
 ```
+
 
 ---
 
 ## 4. Arquitectura de la aplicación
+
+La app utiliza una arquitectura orientada a la mantenibilidad y desacoplamiento:
+
+- **Repository Pattern**: Toda la interacción SQL está aislada en repositorios dentro de `database/`. Ni los hooks ni los componentes tocan SQL directamente.
+- **Feature Modules**: El código se organiza por módulos funcionales (`auth`, `expenses`, `config`). Lo que pertenece a una funcionalidad vive en su carpeta.
+- **Path Aliases**: Se utilizan aliases `@/*` para imports más limpios y robustos ante cambios de estructura (ej: `@/database/client`).
+- **Data Hooks (Próximamente)**: Toda la gestión asíncrona de datos de la UI se extraerá a hooks personalizados para separar más la vista de la lógica.
+- **Inyección de Dependencias (Mocks)**: El sistema está diseñado para facilitar el testeo unitario permitiendo inyectar versiones mock de la base de datos.
 
 La aplicación sigue el patrón de **separación de responsabilidades**: cada parte del código tiene una tarea bien definida y no interfiere con las demás. Esto facilita detectar errores y agregar nuevas funciones sin romper lo que ya funciona.
 

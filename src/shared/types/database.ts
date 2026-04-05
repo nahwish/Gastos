@@ -20,10 +20,10 @@ export interface Reimbursement {
 
 // Valores derivados calculados en pantalla
 export interface DerivedFinancials {
-  disponibleReal: number;           // salary - monthlyTotal
-  conGastosFuturos: number;         // disponibleReal - futureExpenses
-  savingsProgress: number;          // min(disponibleReal / savingsGoal, 1.0)
-  totalWithReimbursements: number;  // disponibleReal + reimbursementsTotal
+  disponibleReal: number; // salary - monthlyTotal
+  conGastosFuturos: number; // disponibleReal - futureExpenses
+  savingsProgress: number; // min(disponibleReal / savingsGoal, 1.0)
+  totalWithReimbursements: number; // disponibleReal + reimbursementsTotal
 }
 
 /**
@@ -33,7 +33,7 @@ export interface DerivedFinancials {
  */
 export function calculateSavingsProgress(
   disponibleReal: number,
-  savingsGoal: number | null
+  savingsGoal: number | null,
 ): number {
   if (savingsGoal === null || savingsGoal <= 0) return 0;
   return Math.min(Math.max(disponibleReal / savingsGoal, 0), 1.0);
@@ -45,7 +45,7 @@ export function calculateSavingsProgress(
  */
 export function calculateTotalWithReimbursements(
   disponibleReal: number,
-  reimbursementsTotal: number
+  reimbursementsTotal: number,
 ): number {
   return disponibleReal + reimbursementsTotal;
 }

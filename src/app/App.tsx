@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { initDatabase } from './database/db';
-import { AuthProvider, useAuth } from './utils/AuthContext';
-import HomeScreen from './screens/HomeScreen';
-import ExpensesListScreen from './screens/ExpensesListScreen';
-import LoginScreen from './screens/LoginScreen';
+import { initDatabase } from '@/database/client';
+import LoginScreen from '@/features/auth/screens/LoginScreen';
+import { AuthProvider, useAuth } from '@/features/auth/services/AuthContext';
+import ExpensesListScreen from '@/features/expenses/screens/ExpensesListScreen';
+import HomeScreen from '@/features/expenses/screens/HomeScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -25,15 +25,15 @@ function HomeTabs() {
         },
       }}
     >
-      <Tab.Screen 
-        name="Inicio" 
+      <Tab.Screen
+        name="Inicio"
         component={HomeScreen}
         options={{
           tabBarLabel: 'Inicio',
         }}
       />
-      <Tab.Screen 
-        name="Lista" 
+      <Tab.Screen
+        name="Lista"
         component={ExpensesListScreen}
         options={{
           tabBarLabel: 'Gastos',
@@ -46,11 +46,7 @@ function HomeTabs() {
 function AuthStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen 
-        name="Login" 
-        component={LoginScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -58,13 +54,9 @@ function AuthStack() {
 function AppStack() {
   return (
     <Stack.Navigator>
-      <Stack.Screen 
-        name="Home" 
-        component={HomeTabs}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="ExpensesList" 
+      <Stack.Screen name="Home" component={HomeTabs} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="ExpensesList"
         component={ExpensesListScreen}
         options={{
           title: 'Gastos por Categoría',
@@ -83,11 +75,7 @@ function RootNavigator() {
     return null; // Podrías mostrar un splash screen
   }
 
-  return (
-    <NavigationContainer>
-      {user ? <AppStack /> : <AuthStack />}
-    </NavigationContainer>
-  );
+  return <NavigationContainer>{user ? <AppStack /> : <AuthStack />}</NavigationContainer>;
 }
 
 export default function App() {

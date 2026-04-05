@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Pressable,
-} from 'react-native';
-import { saveMonthlyConfig } from '../database/monthlyConfigService';
-import { MonthlyConfig } from '../database/types';
-import { DarkTheme } from '../theme/darkTheme';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
+import { saveMonthlyConfig } from '@/database/repositories/configRepository';
+import { DarkTheme } from '@/shared/theme/darkTheme';
+import type { MonthlyConfig } from '@/shared/types/database';
 
 interface Props {
   visible: boolean;
@@ -149,9 +142,7 @@ export default function SalaryConfigModal({
           disabled={saving}
           activeOpacity={0.8}
         >
-          <Text style={styles.saveButtonText}>
-            {saving ? 'Guardando...' : 'Guardar'}
-          </Text>
+          <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar'}</Text>
         </TouchableOpacity>
       </View>
     </View>

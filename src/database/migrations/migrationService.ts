@@ -8,7 +8,7 @@ const migrations: Migration[] = [
     id: '001_add_expense_type',
     up: async (db: any) => {
       await db.execAsync(
-        `ALTER TABLE expenses ADD COLUMN IF NOT EXISTS expense_type TEXT DEFAULT 'individual';`
+        `ALTER TABLE expenses ADD COLUMN IF NOT EXISTS expense_type TEXT DEFAULT 'individual';`,
       );
     },
   },
@@ -58,10 +58,9 @@ export const runMigrations = async (db: any): Promise<void> => {
   `);
 
   for (const migration of migrations) {
-    const existing = await db.getFirstAsync(
-      'SELECT id FROM _migrations WHERE id = ?',
-      [migration.id]
-    );
+    const existing = await db.getFirstAsync('SELECT id FROM _migrations WHERE id = ?', [
+      migration.id,
+    ]);
 
     if (existing) {
       // Already applied, skip
@@ -70,9 +69,9 @@ export const runMigrations = async (db: any): Promise<void> => {
 
     await migration.up(db);
 
-    await db.runAsync(
-      'INSERT INTO _migrations (id, applied_at) VALUES (?, ?)',
-      [migration.id, new Date().toISOString()]
-    );
+    await db.runAsync('INSERT INTO _migrations (id, applied_at) VALUES (?, ?)', [
+      migration.id,
+      new Date().toISOString(),
+    ]);
   }
 };

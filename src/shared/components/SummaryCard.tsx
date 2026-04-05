@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, ViewStyle, StyleSheet } from 'react-native';
-import { DarkTheme } from '../theme/darkTheme';
-import { formatCurrency } from './GradientCard';
+import type { ViewStyle} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { formatCurrency } from '@/shared/components/GradientCard';
+import { DarkTheme } from '@/shared/theme/darkTheme';
 
 interface SummaryCardProps {
   label: string;
@@ -32,18 +33,14 @@ export default function SummaryCard({
       {placeholder ? (
         <Text style={styles.placeholder}>{placeholder}</Text>
       ) : (
-        <Text style={[styles.amount, { color: amountColor }]}>
-          {formatCurrency(amount)}
-        </Text>
+        <Text style={[styles.amount, { color: amountColor }]}>{formatCurrency(amount)}</Text>
       )}
       {percentage !== undefined ? (
         <Text style={styles.percentage}>
           {percentage.toFixed(0)}%{percentageLabel ? ` ${percentageLabel}` : ''}
         </Text>
       ) : null}
-      {subtitle !== undefined ? (
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      ) : null}
+      {subtitle !== undefined ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }

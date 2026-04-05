@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ViewStyle, StyleSheet } from 'react-native';
+import type { ViewStyle} from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 interface ProgressBarProps {
   progress: number;
@@ -19,13 +20,7 @@ export default function ProgressBar({
   const clampedProgress = Math.min(Math.max(progress, 0), 1);
 
   return (
-    <View
-      style={[
-        styles.track,
-        { backgroundColor, height, borderRadius: height / 2 },
-        style,
-      ]}
-    >
+    <View style={[styles.track, { backgroundColor, height, borderRadius: height / 2 }, style]}>
       <View
         style={[
           styles.fill,

@@ -1,7 +1,7 @@
-import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { runMigrations } from './migrationService';
+import * as SQLite from 'expo-sqlite';
+import { runMigrations } from '@/database/migrations/migrationService';
 
 let db: any;
 
@@ -11,34 +11,56 @@ if (Platform.OS === 'web') {
     execAsync: async (sql: string) => {
       const tables = await AsyncStorage.getItem('_db_tables');
       if (!tables) {
-        await AsyncStorage.setItem('_db_tables', JSON.stringify({ users: [], expenses: [], categories: [] }));
+        await AsyncStorage.setItem(
+          '_db_tables',
+          JSON.stringify({ users: [], expenses: [], categories: [] }),
+        );
       }
       return null;
     },
     runAsync: async (sql: string, params: any[] = []) => {
-      let tables = JSON.parse(await AsyncStorage.getItem('_db_tables') || '{"users": [], "expenses": [], "categories": []}');
-      
+      const tables = JSON.parse(
+        (await AsyncStorage.getItem('_db_tables')) ||
+          '{"users": [], "expenses": [], "categories": []}',
+      );
+
       // Asegurar que siempre existan los arrays
       if (!tables.users) tables.users = [];
       if (!tables.expenses) tables.expenses = [];
       if (!tables.categories) tables.categories = [];
-      
+
       if (sql.includes('INSERT INTO users')) {
         const [username, email, password] = params;
-        const id = (tables.users.length > 0 ? Math.max(...tables.users.map((u: any) => u.id)) : 0) + 1;
+        const id =
+          (tables.users.length > 0 ? Math.max(...tables.users.map((u: any) => u.id)) : 0) + 1;
         tables.users.push({ id, username, email, password, created_at: new Date().toISOString() });
         await AsyncStorage.setItem('_db_tables', JSON.stringify(tables));
         return { lastInsertRowId: id, changes: 1 };
       } else if (sql.includes('INSERT INTO expenses')) {
         const [user_id, amount, description, category, date] = params;
-        const id = (tables.expenses.length > 0 ? Math.max(...tables.expenses.map((e: any) => e.id)) : 0) + 1;
-        tables.expenses.push({ id, user_id, amount, description, category, date, created_at: new Date().toISOString() });
+        const id =
+          (tables.expenses.length > 0 ? Math.max(...tables.expenses.map((e: any) => e.id)) : 0) + 1;
+        tables.expenses.push({
+          id,
+          user_id,
+          amount,
+          description,
+          category,
+          date,
+          created_at: new Date().toISOString(),
+        });
         await AsyncStorage.setItem('_db_tables', JSON.stringify(tables));
         return { lastInsertRowId: id, changes: 1 };
-      } else if (sql.includes('INSERT INTO categories') || sql.includes('INSERT OR IGNORE INTO categories')) {
+      } else if (
+        sql.includes('INSERT INTO categories') ||
+        sql.includes('INSERT OR IGNORE INTO categories')
+      ) {
         const [name, icon, color] = params;
         if (!tables.categories.find((c: any) => c.name === name)) {
-          const id = (tables.categories.length > 0 ? Math.max(...tables.categories.map((c: any) => c.id)) : 0) + 1;
+          const id =
+            (tables.categories.length > 0
+              ? Math.max(...tables.categories.map((c: any) => c.id))
+              : 0) + 1;
           tables.categories.push({ id, name, icon, color });
           await AsyncStorage.setItem('_db_tables', JSON.stringify(tables));
         }
@@ -54,7 +76,13 @@ if (Platform.OS === 'web') {
         const id = params[params.length - 1];
         const index = tables.expenses.findIndex((e: any) => e.id === id);
         if (index !== -1) {
-          tables.expenses[index] = { ...tables.expenses[index], amount: params[0], description: params[1], category: params[2], date: params[3] };
+          tables.expenses[index] = {
+            ...tables.expenses[index],
+            amount: params[0],
+            description: params[1],
+            category: params[2],
+            date: params[3],
+          };
           await AsyncStorage.setItem('_db_tables', JSON.stringify(tables));
         }
         return { changes: 1 };
@@ -62,20 +90,25 @@ if (Platform.OS === 'web') {
       return { lastInsertRowId: 1, changes: 1 };
     },
     getAllAsync: async (sql: string, params: any[] = []) => {
-      let tables = JSON.parse(await AsyncStorage.getItem('_db_tables') || '{"users": [], "expenses": [], "categories": []}');
-      
+      const tables = JSON.parse(
+        (await AsyncStorage.getItem('_db_tables')) ||
+          '{"users": [], "expenses": [], "categories": []}',
+      );
+
       // Asegurar que siempre existan los arrays
       if (!tables.users) tables.users = [];
       if (!tables.expenses) tables.expenses = [];
       if (!tables.categories) tables.categories = [];
-      
+
       if (sql.includes('SELECT * FROM users')) {
         return tables.users;
       } else if (sql.includes('SELECT * FROM expenses')) {
         if (sql.includes('WHERE user_id')) {
-          let filtered = tables.expenses.filter((e: any) => e.user_id === params[0]);
+          const filtered = tables.expenses.filter((e: any) => e.user_id === params[0]);
           if (sql.includes('ORDER BY date DESC')) {
-            return [...filtered].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return [...filtered].sort(
+              (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+            );
           }
           return filtered;
         }
@@ -86,34 +119,45 @@ if (Platform.OS === 'web') {
           return tables.expenses.filter((e: any) => e.date >= params[0] && e.date <= params[1]);
         }
         if (sql.includes('ORDER BY date DESC')) {
-          return [...tables.expenses].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          return [...tables.expenses].sort(
+            (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          );
         }
         return tables.expenses;
       } else if (sql.includes('SELECT category, SUM')) {
         const userId = params[0];
         const grouped: any = {};
-        tables.expenses.filter((e: any) => e.user_id === userId).forEach((e: any) => {
-          if (!grouped[e.category]) grouped[e.category] = 0;
-          grouped[e.category] += e.amount;
-        });
-        return Object.entries(grouped).map(([category, total]: any) => ({ category, total })).sort((a: any, b: any) => b.total - a.total);
+        tables.expenses
+          .filter((e: any) => e.user_id === userId)
+          .forEach((e: any) => {
+            if (!grouped[e.category]) grouped[e.category] = 0;
+            grouped[e.category] += e.amount;
+          });
+        return Object.entries(grouped)
+          .map(([category, total]: any) => ({ category, total }))
+          .sort((a: any, b: any) => b.total - a.total);
       } else if (sql.includes('SELECT * FROM categories')) {
         return tables.categories;
       }
       return tables.expenses;
     },
     getFirstAsync: async (sql: string, params: any[] = []) => {
-      let tables = JSON.parse(await AsyncStorage.getItem('_db_tables') || '{"users": [], "expenses": [], "categories": []}');
-      
+      const tables = JSON.parse(
+        (await AsyncStorage.getItem('_db_tables')) ||
+          '{"users": [], "expenses": [], "categories": []}',
+      );
+
       // Asegurar que siempre existan los arrays
       if (!tables.users) tables.users = [];
       if (!tables.expenses) tables.expenses = [];
       if (!tables.categories) tables.categories = [];
-      
+
       if (sql.includes('SELECT * FROM users WHERE')) {
         if (sql.includes('OR')) {
           // Búsqueda por username O email
-          return tables.users.find((u: any) => u.username === params[0] || u.email === params[1]) || null;
+          return (
+            tables.users.find((u: any) => u.username === params[0] || u.email === params[1]) || null
+          );
         } else if (sql.includes('email')) {
           return tables.users.find((u: any) => u.email === params[0]) || null;
         } else if (sql.includes('username')) {
@@ -177,10 +221,11 @@ export const initDatabase = async () => {
     ];
 
     for (const cat of categories) {
-      await db.runAsync(
-        'INSERT OR IGNORE INTO categories (name, icon, color) VALUES (?, ?, ?)',
-        [cat.name, cat.icon, cat.color]
-      );
+      await db.runAsync('INSERT OR IGNORE INTO categories (name, icon, color) VALUES (?, ?, ?)', [
+        cat.name,
+        cat.icon,
+        cat.color,
+      ]);
     }
 
     // Run migrations after base tables are created

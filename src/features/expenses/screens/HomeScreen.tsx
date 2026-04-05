@@ -1,16 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
-import { getMonthlyTotal, getTotalByCategory, getCategories, getTotalByExpenseType, getFutureExpenses, Category } from '../database/expenseService';
-import { getMonthlyConfig } from '../database/monthlyConfigService';
-import { getMonthlyReimbursements } from '../database/reimbursementService';
-import { MonthlyConfig, calculateSavingsProgress, calculateTotalWithReimbursements } from '../database/types';
-import { useAuth } from '../utils/AuthContext';
-import AddExpenseModal from '../components/AddExpenseModal';
-import SalaryConfigModal from '../components/SalaryConfigModal';
-import { DarkTheme } from '../theme/darkTheme';
-import GradientCard from '../components/GradientCard';
-import SummaryCard from '../components/SummaryCard';
-import ProgressBar from '../components/ProgressBar';
+import { getMonthlyConfig } from '@/database/repositories/configRepository';
+import {
+  getMonthlyTotal,
+  getTotalByCategory,
+  getCategories,
+  getTotalByExpenseType,
+  getFutureExpenses
+} from '@/database/repositories/expenseRepository';
+import type {
+  Category} from '@/database/repositories/expenseRepository';
+import { getMonthlyReimbursements } from '@/database/repositories/reimbursementRepository';
+import { useAuth } from '@/features/auth/services/AuthContext';
+import SalaryConfigModal from '@/features/config/components/SalaryConfigModal';
+import AddExpenseModal from '@/features/expenses/components/AddExpenseModal';
+import GradientCard from '@/shared/components/GradientCard';
+import ProgressBar from '@/shared/components/ProgressBar';
+import SummaryCard from '@/shared/components/SummaryCard';
+import { DarkTheme } from '@/shared/theme/darkTheme';
+import {
+  calculateSavingsProgress,
+  calculateTotalWithReimbursements,
+} from '@/shared/types/database';
+import type {
+  MonthlyConfig} from '@/shared/types/database';
 
 function formatMonthYear(date: Date): string {
   const month = date.toLocaleDateString('es-ES', { month: 'long' });
@@ -21,7 +34,7 @@ function formatMonthYear(date: Date): string {
 
 export default function HomeScreen({ navigation }: any) {
   const [monthlyTotal, setMonthlyTotal] = useState(0);
-  const [categoryTotals, setCategoryTotals] = useState<{category: string, total: number}[]>([]);
+  const [categoryTotals, setCategoryTotals] = useState<{ category: string; total: number }[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -30,7 +43,10 @@ export default function HomeScreen({ navigation }: any) {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [monthlyConfig, setMonthlyConfig] = useState<MonthlyConfig | null>(null);
   const [reimbursementsTotal, setReimbursementsTotal] = useState(0);
-  const [expenseTypeBreakdown, setExpenseTypeBreakdown] = useState<{shared: number, individual: number}>({ shared: 0, individual: 0 });
+  const [expenseTypeBreakdown, setExpenseTypeBreakdown] = useState<{
+    shared: number;
+    individual: number;
+  }>({ shared: 0, individual: 0 });
   const [futureExpenses, setFutureExpenses] = useState(0);
   const { user, logout } = useAuth();
 
@@ -85,7 +101,10 @@ export default function HomeScreen({ navigation }: any) {
   const disponibleReal = (salary ?? 0) - monthlyTotal;
   const conGastosFuturos = disponibleReal - futureExpenses;
   const savingsProgress = calculateSavingsProgress(disponibleReal, savingsGoal);
-  const totalWithReimbursements = calculateTotalWithReimbursements(disponibleReal, reimbursementsTotal);
+  const totalWithReimbursements = calculateTotalWithReimbursements(
+    disponibleReal,
+    reimbursementsTotal,
+  );
   const { shared, individual } = expenseTypeBreakdown;
 
   return (
@@ -100,7 +119,10 @@ export default function HomeScreen({ navigation }: any) {
               <Text style={styles.confirmTitle}>Cerrar Sesión</Text>
               <Text style={styles.confirmMessage}>¿Estás seguro de que quieres cerrar sesión?</Text>
               <View style={styles.confirmButtons}>
-                <TouchableOpacity style={styles.confirmCancelButton} onPress={() => setShowLogoutConfirm(false)}>
+                <TouchableOpacity
+                  style={styles.confirmCancelButton}
+                  onPress={() => setShowLogoutConfirm(false)}
+                >
                   <Text style={styles.confirmCancelText}>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.confirmLogoutButton} onPress={confirmLogout}>
@@ -128,7 +150,9 @@ export default function HomeScreen({ navigation }: any) {
               colors={['#7C3AED', '#EC4899']}
               label="Disponible Real"
               amount={disponibleReal}
-              subtitle={salary !== null ? `de $${salary.toLocaleString('es-AR')}` : 'Configurar sueldo'}
+              subtitle={
+                salary !== null ? `de $${salary.toLocaleString('es-AR')}` : 'Configurar sueldo'
+              }
               isNegative={disponibleReal < 0}
               style={styles.gradientCardItem}
             />
@@ -183,7 +207,11 @@ export default function HomeScreen({ navigation }: any) {
               )}
             </View>
           ) : (
-            <TouchableOpacity style={styles.configureButton} activeOpacity={0.7} onPress={() => setShowSalaryModal(true)}>
+            <TouchableOpacity
+              style={styles.configureButton}
+              activeOpacity={0.7}
+              onPress={() => setShowSalaryModal(true)}
+            >
               <Text style={styles.configureButtonText}>Configurar objetivo</Text>
             </TouchableOpacity>
           )}
@@ -193,10 +221,16 @@ export default function HomeScreen({ navigation }: any) {
           {salary !== null ? (
             <View style={styles.salaryCard}>
               <Text style={styles.salaryAmount}>${salary.toLocaleString('es-AR')}</Text>
-              <Text style={styles.salarySubtitle}>Con reintegros: ${totalWithReimbursements.toLocaleString('es-AR')}</Text>
+              <Text style={styles.salarySubtitle}>
+                Con reintegros: ${totalWithReimbursements.toLocaleString('es-AR')}
+              </Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.configureButton} activeOpacity={0.7} onPress={() => setShowSalaryModal(true)}>
+            <TouchableOpacity
+              style={styles.configureButton}
+              activeOpacity={0.7}
+              onPress={() => setShowSalaryModal(true)}
+            >
               <Text style={styles.configureButtonText}>Configurar sueldo</Text>
             </TouchableOpacity>
           )}
@@ -253,7 +287,11 @@ export default function HomeScreen({ navigation }: any) {
       </ScrollView>
 
       {/* Botón Flotante */}
-      <TouchableOpacity style={styles.fab} onPress={() => setShowAddModal(true)} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setShowAddModal(true)}
+        activeOpacity={0.8}
+      >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
@@ -296,7 +334,12 @@ const styles = StyleSheet.create({
   content: { padding: 20 },
   gradientCardRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   gradientCardItem: { flex: 1 },
-  sectionTitle: { color: DarkTheme.colors.textPrimary, fontSize: 18, fontWeight: '700', marginBottom: 12 },
+  sectionTitle: {
+    color: DarkTheme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
   summaryCardRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   configureButton: {
     borderWidth: 1,
@@ -334,7 +377,12 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
   },
-  categoriesTitle: { fontSize: 20, fontWeight: 'bold', color: DarkTheme.colors.textPrimary, marginBottom: 16 },
+  categoriesTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: DarkTheme.colors.textPrimary,
+    marginBottom: 16,
+  },
   emptyText: { color: DarkTheme.colors.textSecondary, textAlign: 'center', paddingVertical: 16 },
   categoryItem: {
     flexDirection: 'row',
@@ -369,7 +417,10 @@ const styles = StyleSheet.create({
   fabText: { color: '#FFFFFF', fontSize: 32, fontWeight: 'bold', marginTop: -2 },
   confirmOverlay: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -383,17 +434,33 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
   },
-  confirmTitle: { fontSize: 20, fontWeight: 'bold', color: DarkTheme.colors.textPrimary, marginBottom: 8 },
-  confirmMessage: { fontSize: 16, color: DarkTheme.colors.textSecondary, marginBottom: 24, lineHeight: 24 },
+  confirmTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: DarkTheme.colors.textPrimary,
+    marginBottom: 8,
+  },
+  confirmMessage: {
+    fontSize: 16,
+    color: DarkTheme.colors.textSecondary,
+    marginBottom: 24,
+    lineHeight: 24,
+  },
   confirmButtons: { flexDirection: 'row', gap: 12 },
   confirmCancelButton: {
-    flex: 1, padding: 16, borderRadius: 16,
-    backgroundColor: DarkTheme.colors.border, alignItems: 'center',
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: DarkTheme.colors.border,
+    alignItems: 'center',
   },
   confirmCancelText: { color: DarkTheme.colors.textPrimary, fontWeight: 'bold' },
   confirmLogoutButton: {
-    flex: 2, padding: 16, borderRadius: 16,
-    backgroundColor: '#DC2626', alignItems: 'center',
+    flex: 2,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
   },
   confirmLogoutText: { color: '#FFFFFF', fontWeight: 'bold' },
   dropdownButton: {

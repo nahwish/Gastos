@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, ViewStyle, StyleSheet } from 'react-native';
+import type { ViewStyle} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface GradientCardProps {
@@ -38,12 +39,8 @@ export default function GradientCard({
       end={{ x: 1, y: 1 }}
     >
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.amount, { color: amountColor }]}>
-        {formatCurrency(amount)}
-      </Text>
-      {subtitle ? (
-        <Text style={styles.subtitle}>{subtitle}</Text>
-      ) : null}
+      <Text style={[styles.amount, { color: amountColor }]}>{formatCurrency(amount)}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </LinearGradient>
   );
 }

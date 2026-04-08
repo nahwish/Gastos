@@ -17,11 +17,16 @@ jest.mock('expo-sqlite', () => ({
   })),
 }));
 
-// Mock React Native Platform
+// Mock React Native
 jest.mock('react-native', () => ({
-  ...jest.requireActual('react-native'),
   Platform: {
     OS: 'web',
-    select: (obj) => obj.web,
+    select: (obj) => obj.web ?? obj.default,
+  },
+  Share: {
+    share: jest.fn(() => Promise.resolve({ action: 'sharedAction' })),
+  },
+  Alert: {
+    alert: jest.fn(),
   },
 }));

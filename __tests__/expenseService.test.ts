@@ -8,6 +8,9 @@ import {
   getFutureExpenses,
   getCategories,
   addCategory,
+  getExpensesByMonth,
+  getExpensesByCategory,
+  updateExpense,
 } from '@/database/repositories/expenseRepository';
 
 jest.mock('@/database/client', () => ({
@@ -307,6 +310,136 @@ describe('ExpenseService', () => {
         'INSERT INTO categories (name, icon, color, user_id, is_default) VALUES (?, ?, ?, ?, 0)',
         ['Mascota', '🐾', '#00B894', 1]
       );
+    });
+  });
+
+  describe('getExpensesByMonth', () => {
+    it('debería obtener gastos del mes indicado', async () => {
+      const db = require('@/database/client').default;
+
+      const expenses = [
+        { id: 1, user_id: 1, amount: 100, description: 'Comida', category: 'Alimentación', date: '2024-03-10' },
+      ];
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce(expenses);
+
+      const result = await getExpensesByMonth(2024, 3);
+
+      expect(result).toEqual(expenses);
+      expect(db.getAllAsync).toHaveBeenCalledWith(
+        expect.stringContaining('date BETWEEN'),
+        [1, '2024-03-01', '2024-03-31'],
+      );
+    });
+
+    it('debería retornar array vacío si no hay gastos en el mes', async () => {
+      const db = require('@/database/client').default;
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce([]);
+
+      const result = await getExpensesByMonth(2024, 6);
+
+      expect(result).toEqual([]);
+    });
+
+    it('debería rechazar si no hay usuario autenticado', async () => {
+      const authService = require('@/database/repositories/userRepository');
+      (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(getExpensesByMonth(2024, 1)).rejects.toThrow('No user logged in');
+    });
+  });
+
+  describe('getExpensesByCategory', () => {
+    it('debería obtener gastos de una categoría específica', async () => {
+      const db = require('@/database/client').default;
+
+      const expenses = [
+        { id: 1, user_id: 1, amount: 200, description: 'Nafta', category: 'Transporte', date: '2024-01-05' },
+      ];
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce(expenses);
+
+      const result = await getExpensesByCategory('Transporte');
+
+      expect(result).toEqual(expenses);
+      expect(db.getAllAsync).toHaveBeenCalledWith(
+        expect.stringContaining('category = ?'),
+        [1, 'Transporte'],
+      );
+    });
+
+    it('debería retornar array vacío si no hay gastos en la categoría', async () => {
+      const db = require('@/database/client').default;
+
+      (db.getAllAsync as jest.Mock).mockResolvedValueOnce([]);
+
+      const result = await getExpensesByCategory('Salud');
+
+      expect(result).toEqual([]);
+    });
+
+    it('debería rechazar si no hay usuario autenticado', async () => {
+      const authService = require('@/database/repositories/userRepository');
+      (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(getExpensesByCategory('Alimentación')).rejects.toThrow('No user logged in');
+    });
+  });
+
+  describe('updateExpense', () => {
+    it('debería actualizar un gasto existente', async () => {
+      const db = require('@/database/client').default;
+
+      (db.runAsync as jest.Mock).mockResolvedValueOnce({ changes: 1 });
+
+      await updateExpense(1, {
+        amount: 150,
+        description: 'Almuerzo actualizado',
+        category: 'Alimentación',
+        date: '2024-01-10',
+      });
+
+      expect(db.runAsync).toHaveBeenCalledWith(
+        'UPDATE expenses SET amount = ?, description = ?, category = ?, date = ? WHERE id = ?',
+        [150, 'Almuerzo actualizado', 'Alimentación', '2024-01-10', 1],
+      );
+    });
+  });
+
+  describe('getAllExpenses — sin usuario autenticado', () => {
+    it('debería rechazar si no hay usuario autenticado', async () => {
+      const authService = require('@/database/repositories/userRepository');
+      (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(getAllExpenses()).rejects.toThrow('No user logged in');
+    });
+  });
+
+  describe('getTotalByCategory — sin usuario autenticado', () => {
+    it('debería rechazar si no hay usuario autenticado', async () => {
+      const authService = require('@/database/repositories/userRepository');
+      (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(getTotalByCategory()).rejects.toThrow('No user logged in');
+    });
+  });
+
+  describe('getTotalByExpenseType — sin usuario autenticado', () => {
+    it('debería rechazar si no hay usuario autenticado', async () => {
+      const authService = require('@/database/repositories/userRepository');
+      (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(getTotalByExpenseType(2024, 1)).rejects.toThrow('No user logged in');
+    });
+  });
+
+  describe('getFutureExpenses — sin usuario autenticado', () => {
+    it('debería rechazar si no hay usuario autenticado', async () => {
+      const authService = require('@/database/repositories/userRepository');
+      (authService.getCurrentUserId as jest.Mock).mockResolvedValueOnce(null);
+
+      await expect(getFutureExpenses(2024, 1)).rejects.toThrow('No user logged in');
     });
   });
 });
